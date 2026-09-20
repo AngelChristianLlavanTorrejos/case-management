@@ -130,12 +130,12 @@ export function createRegisterResolver(policy: SecuritySettings | null): Resolve
   return async (values, context, options) => {
     const names = options.names as (keyof RegisterValues)[] | undefined
 
-    const applyPolicy = (result: Awaited<ReturnType<Resolver<RegisterValues>>>) => {
+    const applyPolicy = (result: Awaited<ReturnType<Resolver<RegisterValues>>>): Awaited<ReturnType<Resolver<RegisterValues>>> => {
       const message = checkPassword(values.password, values.username, policy)
       if (!message) return result
       if (names?.length && !names.includes('password')) return result
       return {
-        ...result,
+        values: {},
         errors: {
           ...result.errors,
           password: {
@@ -143,7 +143,6 @@ export function createRegisterResolver(policy: SecuritySettings | null): Resolve
             message,
           },
         },
-        values: result.errors && Object.keys(result.errors).length ? result.values : result.values,
       }
     }
 

@@ -5,7 +5,7 @@ import type { SecuritySettings } from '@/lib/security-settings-api'
 const AMOUNT_MESSAGE = 'Enter a value of at least 1.'
 
 function amountField() {
-  return z.coerce.number({ error: AMOUNT_MESSAGE }).int(AMOUNT_MESSAGE).min(0, AMOUNT_MESSAGE)
+  return z.number({ error: AMOUNT_MESSAGE }).int(AMOUNT_MESSAGE).min(0, AMOUNT_MESSAGE)
 }
 
 export const securitySettingsSchema = z

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { Controller, useForm, type Control, type FieldPath } from 'react-hook-form'
+import { Controller, useForm, type Control, type FieldPath, type Resolver } from 'react-hook-form'
 
 import { Field } from '@/components/auth/field'
 import { PageHeader } from '@/components/layout/page-header'
@@ -133,7 +133,7 @@ function SettingRow({
           name={row.amount}
           control={control}
           render={({ field, fieldState }) => (
-            <Field label={row.amountLabel} htmlFor={row.amount} error={fieldState.error?.message}>
+            <Field label={row.amountLabel ?? ''} htmlFor={row.amount} error={fieldState.error?.message}>
               <Input
                 id={row.amount}
                 type="number"
@@ -162,7 +162,7 @@ export function BaselineSecurityPage() {
   })
 
   const form = useForm<SecuritySettingsValues>({
-    resolver: zodResolver(securitySettingsSchema),
+    resolver: zodResolver(securitySettingsSchema) as Resolver<SecuritySettingsValues>,
     defaultValues: emptySecuritySettings,
   })
 
