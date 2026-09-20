@@ -1,0 +1,17 @@
+---
+description: Login and Registration civic/government UI rules
+globs: "src/{pages,components/auth}/**/*.{tsx,ts}"
+alwaysApply: false
+---
+
+# Authentication UI
+
+Keep Login and Registration civic, official, and consistent.
+
+- Background: `/images/bg.png` with a dark overlay. Card is white.
+- Logo: `/images/logo.png` above the title "Case Management System".
+- Login only: Username, Password, Login, Create Account. No social, remember me, or forgot password.
+- Registration is a 5-step wizard: Personal, Present Address, Permanent Address, Contact, Account.
+- Do not show Role or Status. New users use seeded `User` + `for registration` via `register_user`.
+- Preserve wizard values between steps. Mark optional fields as optional.
+- Green/red are accents only. Forms stay white, light gray, and near-black.
