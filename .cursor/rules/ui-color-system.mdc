@@ -1,0 +1,40 @@
+---
+description: Global UI color system — sparse brand accents on a ChatGPT-style neutral interface
+globs: "**/*.{tsx,css}"
+alwaysApply: true
+---
+
+# UI Color System
+
+Content stays neutral. Brand color is an accent, not a fill.
+
+| Token | Value | Use |
+|---|---|---|
+| `--brand` / `primary` | `#225008` | Sidebar active item, page titles (`h1`), header emphasis, primary actions, focus ring |
+| `--danger` / `destructive` | `#BA3C25` | Destructive/important warning actions only |
+| `--background` | `#F7F7F8` | App canvas |
+| `--surface` / `card` | `#FFFFFF` | Content panels, forms, dialogs |
+| `--foreground` | `#1A1A1A` | Body text |
+| `--muted-foreground` | `#6B6B6B` | Secondary text |
+| `--sidebar` | `#F3F3F4` | Sidebar background — not green |
+
+```tsx
+// ❌ BAD — large green/red surfaces
+<div className="bg-brand text-white min-h-screen">
+  <button className="bg-danger w-full">Save</button>
+</div>
+
+// ✅ GOOD — white content, sparse accents
+<main className="bg-surface text-foreground">
+  <h1>Cases</h1>
+  <button className="bg-primary text-primary-foreground">Create case</button>
+  <button className="bg-destructive text-white">Delete</button>
+</main>
+```
+
+- Do not tint tables, cards, inputs, or page backgrounds green or red.
+- Hover/selected rows use `muted` or `accent` gray, not brand.
+- Sidebar hover is gray (`sidebar-accent`). Only the active item uses `sidebar-primary`.
+- Prefer `outline` / `secondary` buttons for ordinary actions. Use brand for one primary action per view.
+- Keep contrast AA: brand/danger text and icons sit on white or on the brand fill with white labels.
+- Dark mode keeps the same hex accents; surfaces stay near-black/gray.
