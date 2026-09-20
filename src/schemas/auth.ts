@@ -3,6 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { Resolver } from 'react-hook-form'
 
 import { isAtLeast18 } from '@/lib/form-fields'
+import { checkPassword } from '@/lib/password-policy'
+import type { SecuritySettings } from '@/lib/security-settings-api'
 
 const requiredText = (label: string) =>
   z
@@ -48,7 +50,7 @@ export const registerFieldsSchema = z.object({
   telephone_number: z.string().trim(),
   email: z.email('Enter a valid email'),
   username: requiredText('Username').min(3, 'Username must be at least 3 characters'),
-  password: requiredText('Password').min(8, 'Password must be at least 8 characters'),
+  password: requiredText('Password'),
   confirm_password: requiredText('Confirm password'),
 })
 
@@ -124,27 +126,51 @@ export function parseRegisterStep(step: number, values: RegisterValues) {
   return registerFieldsSchema.pick(pick).safeParse(values)
 }
 
-export const registerResolver: Resolver<RegisterValues> = async (values, context, options) => {
-  const names = options.names as (keyof RegisterValues)[] | undefined
+export function createRegisterResolver(policy: SecuritySettings | null): Resolver<RegisterValues> {
+  return async (values, context, options) => {
+    const names = options.names as (keyof RegisterValues)[] | undefined
 
-  if (!names?.length) {
-    return zodResolver(registerSchema)(values, context, options)
+    const applyPolicy = (result: Awaited<ReturnType<Resolver<RegisterValues>>>) => {
+      const message = checkPassword(values.password, values.username, policy)
+      if (!message) return result
+      if (names?.length && !names.includes('password')) return result
+      return {
+        ...result,
+        errors: {
+          ...result.errors,
+          password: {
+            type: 'custom',
+            message,
+          },
+        },
+        values: result.errors && Object.keys(result.errors).length ? result.values : result.values,
+      }
+    }
+
+    if (!names?.length) {
+      const result = await zodResolver(registerSchema)(values, context, options)
+      return applyPolicy(result)
+    }
+
+    const pick = Object.fromEntries(names.map((name) => [name, true]))
+    const checkPasswords = names.includes('password') || names.includes('confirm_password')
+    const schema = checkPasswords
+      ? registerFieldsSchema
+          .pick({
+            password: true,
+            confirm_password: true,
+            username: true,
+            ...pick,
+          } as { password: true; confirm_password: true; username: true })
+          .refine(
+            (data) => !data.password || !data.confirm_password || data.password === data.confirm_password,
+            { message: 'Passwords do not match', path: ['confirm_password'] },
+          )
+      : registerFieldsSchema.pick(pick as Record<(typeof names)[number], true>)
+
+    const result = await (zodResolver(schema) as unknown as Resolver<RegisterValues>)(values, context, options)
+    return applyPolicy(result)
   }
-
-  const pick = Object.fromEntries(names.map((name) => [name, true]))
-  const checkPasswords = names.includes('password') || names.includes('confirm_password')
-  const schema = checkPasswords
-    ? registerFieldsSchema
-        .pick({
-          password: true,
-          confirm_password: true,
-          ...pick,
-        } as { password: true; confirm_password: true })
-        .refine(
-          (data) => !data.password || !data.confirm_password || data.password === data.confirm_password,
-          { message: 'Passwords do not match', path: ['confirm_password'] },
-        )
-    : registerFieldsSchema.pick(pick as Record<(typeof names)[number], true>)
-
-  return (zodResolver(schema) as unknown as Resolver<RegisterValues>)(values, context, options)
 }
+
+export const registerResolver = createRegisterResolver(null)

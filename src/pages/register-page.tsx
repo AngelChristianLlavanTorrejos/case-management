@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
-import { useState, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { Controller, useForm, type FieldPath, type UseFormReturn } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 
@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getRegisterLookups, registerUser } from '@/lib/auth-api'
+import { getSecuritySettings } from '@/lib/security-settings-api'
 import { maxAdultBirthdate, placeholders } from '@/lib/form-fields'
-import { type RegisterValues, registerResolver, registerStepFields } from '@/schemas/auth'
+import { type RegisterValues, createRegisterResolver, registerStepFields } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import type { LookupOption } from '@/types/auth'
 
@@ -116,8 +117,15 @@ export function RegisterPage() {
     queryFn: getRegisterLookups,
   })
 
+  const settingsQuery = useQuery({
+    queryKey: ['security-settings'],
+    queryFn: getSecuritySettings,
+  })
+  const settingsRef = useRef(settingsQuery.data ?? null)
+  settingsRef.current = settingsQuery.data ?? null
+
   const form = useForm<RegisterValues>({
-    resolver: registerResolver,
+    resolver: (values, context, options) => createRegisterResolver(settingsRef.current)(values, context, options),
     defaultValues: emptyRegisterValues,
     mode: 'onSubmit',
     reValidateMode: 'onChange',

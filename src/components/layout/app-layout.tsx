@@ -1,14 +1,25 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Outlet } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 
 import { AppBreadcrumb } from '@/components/layout/app-breadcrumb'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { useIdleLogout } from '@/hooks/use-idle-logout'
+import { useSessionGuard } from '@/hooks/use-session-guard'
+import { getSecuritySettings } from '@/lib/security-settings-api'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/stores/ui-store'
 
 export function AppLayout() {
   const collapsed = useUiStore((state) => state.sidebarCollapsed)
   const toggleCollapsed = useUiStore((state) => state.toggleSidebarCollapsed)
+  const settingsQuery = useQuery({
+    queryKey: ['security-settings'],
+    queryFn: getSecuritySettings,
+  })
+
+  useIdleLogout(settingsQuery.data)
+  useSessionGuard()
 
   return (
     <div className="relative flex h-svh overflow-hidden bg-white">

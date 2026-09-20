@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/app-layout'
+import { BaselineSecurityPage } from '@/pages/baseline-security-page'
 import { CivilStatusPage } from '@/pages/civil-status-page'
 import { CommunityMembersPage } from '@/pages/community-members-page'
 import { HomePage } from '@/pages/home-page'
@@ -39,6 +40,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/community-members" element={<CommunityMembersPage />} />
           <Route path="/user-activity-log" element={<UserActivityLogPage />} />
+          <Route path="/baseline-security" element={<BaselineSecurityPage />} />
           <Route path="/masterfile/suffixes" element={<SuffixPage />} />
           <Route path="/masterfile/civil-status" element={<CivilStatusPage />} />
         </Route>

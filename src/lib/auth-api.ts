@@ -7,6 +7,7 @@ type AuthRpcResult = {
   role_name: string
   status_name: string
   display_name?: string
+  session_token?: string | null
 }
 
 export type RegisterPayload = {
@@ -51,6 +52,7 @@ function toSession(data: unknown): AuthSession {
     displayName: parsed.display_name || parsed.username,
     roleName: parsed.role_name,
     statusName: parsed.status_name,
+    sessionToken: parsed.session_token ?? null,
   }
 }
 

@@ -4,6 +4,7 @@ export type AuthSession = {
   displayName?: string
   roleName: string
   statusName: string
+  sessionToken?: string | null
 }
 
 export type LookupOption = {
