@@ -21,6 +21,15 @@ export const placeholders = {
   search_activity: 'e.g. Juan Dela Cruz',
 } as const
 
+export function formatStatusLabel(value: string) {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export function maskMobileNumber(value: string) {
   const digits = value.replace(/\D/g, '')
   if (!digits) return ''

@@ -31,6 +31,7 @@ import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import { getRegisterLookups } from '@/lib/auth-api'
 import {
+  formatStatusLabel,
   maxAdultBirthdate,
   placeholders,
 } from '@/lib/form-fields'
@@ -342,6 +343,13 @@ export function CommunityMembersPage() {
               { key: 'age', header: 'Age', sortable: true, className: 'w-24' },
               { key: 'sex_name', header: 'Sex', sortable: true, className: 'w-28' },
               { key: 'location', header: 'Location', sortable: true },
+              {
+                key: 'status_name',
+                header: 'Status',
+                sortable: true,
+                className: 'w-36',
+                render: (row) => formatStatusLabel(row.status_name),
+              },
             ]}
             rows={rows}
             isLoading={listQuery.isLoading}
