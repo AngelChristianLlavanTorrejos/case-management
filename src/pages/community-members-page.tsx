@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, Check, Eye, Pencil, Trash2 } from 'lucide-react'
+import { Ban, Check, Eye, Pencil, Trash2, UserCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
@@ -35,6 +35,7 @@ import {
   placeholders,
 } from '@/lib/form-fields'
 import {
+  allowCommunityMember,
   approveCommunityMember,
   deleteCommunityMember,
   disapproveCommunityMember,
@@ -244,6 +245,24 @@ export function CommunityMembersPage() {
     }
   }
 
+  async function handleAllow(row: CommunityMemberListRow) {
+    const ok = await confirm({
+      title: 'Allow this resident?',
+      description: `${row.display_name} will be active and able to sign in again.`,
+      confirmLabel: 'Allow',
+    })
+    if (!ok) return
+
+    try {
+      if (!actorUserId) throw new Error('You must be signed in.')
+      await allowCommunityMember(row.id, actorUserId)
+      await invalidateList()
+      toast.success('Resident allowed.')
+    } catch (error) {
+      toast.error('Unable to allow this resident.', error instanceof Error ? error.message : undefined)
+    }
+  }
+
   async function handleDelete(row: CommunityMemberListRow) {
     const ok = await confirm({
       title: 'Delete this resident?',
@@ -288,6 +307,12 @@ export function CommunityMembersPage() {
       onSelect: (row) => void handleRestrict(row),
       variant: 'destructive',
       hidden: (row) => row.status_name.toLowerCase() === 'inactive',
+    },
+    {
+      label: 'Allow',
+      icon: UserCheck,
+      onSelect: (row) => void handleAllow(row),
+      hidden: (row) => row.status_name.toLowerCase() !== 'inactive',
     },
   ]
 

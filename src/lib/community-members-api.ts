@@ -148,6 +148,14 @@ export async function restrictCommunityMember(id: number, actorUserId: number): 
   if (error) throw rpcError(error.message)
 }
 
+export async function allowCommunityMember(id: number, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc('allow_community_member', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
+  if (error) throw rpcError(error.message)
+}
+
 export async function deleteCommunityMember(id: number, actorUserId: number): Promise<void> {
   const { error } = await supabase.rpc('delete_community_member', {
     p_id: id,

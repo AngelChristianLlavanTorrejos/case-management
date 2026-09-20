@@ -6,6 +6,7 @@ export type ActivityLogActivity =
   | 'delete'
   | 'approve'
   | 'restrict'
+  | 'allow'
   | 'login_failed'
 
 export type ActivityLogListRow = {
@@ -52,6 +53,7 @@ export const ACTIVITY_LABELS: Record<ActivityLogActivity, string> = {
   delete: 'Delete',
   approve: 'Approve',
   restrict: 'Restrict',
+  allow: 'Allow',
   login_failed: 'Login failed',
 }
 
