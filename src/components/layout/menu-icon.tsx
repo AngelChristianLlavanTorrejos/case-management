@@ -2,6 +2,7 @@ import {
   Circle,
   FolderTree,
   HeartHandshake,
+  House,
   LayoutDashboard,
   Tags,
   Users,
@@ -9,14 +10,22 @@ import {
 } from 'lucide-react'
 
 const ICONS: Record<string, LucideIcon> = {
-  LayoutDashboard,
-  FolderTree,
-  Tags,
-  HeartHandshake,
-  Users,
+  circle: Circle,
+  foldertree: FolderTree,
+  hearthandshake: HeartHandshake,
+  house: House,
+  home: House,
+  layoutdashboard: LayoutDashboard,
+  tags: Tags,
+  users: Users,
+  user: Users,
+}
+
+function iconKey(name: string) {
+  return name.replace(/[-_\s]/g, '').toLowerCase()
 }
 
 export function MenuIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = ICONS[name] ?? Circle
+  const Icon = ICONS[iconKey(name)] ?? Circle
   return <Icon className={className} />
 }
