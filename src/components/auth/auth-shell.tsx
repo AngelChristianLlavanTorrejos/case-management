@@ -12,7 +12,7 @@ export function AuthShell({ children, cardClassName }: AuthShellProps) {
     <div className="relative min-h-svh">
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: 'url(/images/bg.png)' }}
+        style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg.png)` }}
         aria-hidden
       />
       <div className="absolute inset-0 bg-[#171717]/50" aria-hidden />
@@ -34,7 +34,7 @@ export function AuthBrand({ description }: { description: string }) {
   return (
     <div className="mb-6 text-center">
       <img
-        src="/images/logo.png"
+        src={`${import.meta.env.BASE_URL}images/logo.png`}
         alt="Barangay Tanza 1, Navotas"
         className="mx-auto mb-4 h-20 w-20 object-contain sm:h-24 sm:w-24"
       />

@@ -66,7 +66,7 @@ export function AppSidebar({ className }: { className?: string }) {
       >
         <div className={cn('flex min-w-0 items-center gap-3', collapsed && 'justify-center')}>
           <img
-            src="/images/logo.png"
+            src={`${import.meta.env.BASE_URL}images/logo.png`}
             alt=""
             className={cn('shrink-0 object-contain', collapsed ? 'size-9' : 'size-11')}
           />
