@@ -145,14 +145,25 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
   async function handleEditSave(values: LookupNameValues) {
     if (!editing) return
 
+    setFormOpen(false)
+    await new Promise((resolve) => window.setTimeout(resolve, 80))
+
     const confirmed = await confirm({
       title: `Save ${title} changes`,
       description: `Update “${editing.name}” to “${values.name}”?`,
       confirmLabel: 'Save',
     })
 
-    if (!confirmed) return
-    saveMutation.mutate(values)
+    if (!confirmed) {
+      setFormOpen(true)
+      return
+    }
+
+    try {
+      await saveMutation.mutateAsync(values)
+    } catch {
+      setFormOpen(true)
+    }
   }
 
   async function handleDelete(row: LookupRow) {
