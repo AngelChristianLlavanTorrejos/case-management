@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
+import { placeholders } from '@/lib/form-fields'
 import {
   createLookup,
   deleteLookup,
@@ -193,7 +194,7 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
       <PageContent
         title={title}
         description={description}
-        searchPlaceholder={`Search ${title.toLowerCase()}`}
+        searchPlaceholder={kind === 'suffix' ? placeholders.lookup_suffix : placeholders.lookup_civil_status}
         searchValue={search}
         onSearchChange={setSearch}
         filters={
@@ -263,7 +264,7 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
                 id={`${kind}-name`}
                 icon={<Type />}
                 {...form.register('name')}
-                placeholder="Enter name"
+                placeholder={kind === 'suffix' ? placeholders.lookup_suffix : placeholders.lookup_civil_status}
               />
             </Field>
             {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}

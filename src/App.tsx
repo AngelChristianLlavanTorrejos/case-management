@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { CivilStatusPage } from '@/pages/civil-status-page'
+import { CommunityMembersPage } from '@/pages/community-members-page'
 import { HomePage } from '@/pages/home-page'
 import { LoginPage } from '@/pages/login-page'
 import { RegisterPage } from '@/pages/register-page'
@@ -35,6 +36,7 @@ function App() {
           }
         >
           <Route path="/" element={<HomePage />} />
+          <Route path="/community-members" element={<CommunityMembersPage />} />
           <Route path="/masterfile/suffixes" element={<SuffixPage />} />
           <Route path="/masterfile/civil-status" element={<CivilStatusPage />} />
         </Route>

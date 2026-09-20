@@ -8,6 +8,7 @@ import { Field } from '@/components/auth/field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { loginUser } from '@/lib/auth-api'
+import { placeholders } from '@/lib/form-fields'
 import { type LoginValues, loginSchema } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -55,6 +56,7 @@ export function LoginPage() {
           <Input
             id="username"
             autoComplete="username"
+            placeholder={placeholders.username}
             className="h-10 bg-white"
             aria-invalid={Boolean(form.formState.errors.username)}
             {...form.register('username')}
@@ -71,6 +73,7 @@ export function LoginPage() {
             id="password"
             type="password"
             autoComplete="current-password"
+            placeholder={placeholders.password}
             className="h-10 bg-white"
             aria-invalid={Boolean(form.formState.errors.password)}
             {...form.register('password')}
@@ -86,7 +89,7 @@ export function LoginPage() {
 
       <p className="mt-5 text-center text-sm text-[#666666]">
         Need an account?{' '}
-        <Link to="/register" className="font-medium text-brand hover:underline">
+        <Link to="/register" className="cursor-pointer font-medium text-brand hover:underline">
           Create Account
         </Link>
       </p>

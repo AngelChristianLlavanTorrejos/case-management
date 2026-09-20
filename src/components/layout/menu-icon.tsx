@@ -4,6 +4,7 @@ import {
   HeartHandshake,
   LayoutDashboard,
   Tags,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -12,6 +13,7 @@ const ICONS: Record<string, LucideIcon> = {
   FolderTree,
   Tags,
   HeartHandshake,
+  Users,
 }
 
 export function MenuIcon({ name, className }: { name: string; className?: string }) {

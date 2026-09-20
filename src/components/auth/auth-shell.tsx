@@ -38,7 +38,7 @@ export function AuthBrand({ description }: { description: string }) {
         alt="Barangay Tanza 1, Navotas"
         className="mx-auto mb-4 h-20 w-20 object-contain sm:h-24 sm:w-24"
       />
-      <h1 className="text-xl font-semibold sm:text-2xl">Case Management System</h1>
+      <h1 className="text-xl font-semibold sm:text-2xl">Tanza Resolve</h1>
       <p className="mt-1 text-sm text-[#666666]">{description}</p>
     </div>
   )

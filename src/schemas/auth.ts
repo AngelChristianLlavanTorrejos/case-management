@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { Resolver } from 'react-hook-form'
+
+import { isAtLeast18 } from '@/lib/form-fields'
 
 const requiredText = (label: string) =>
   z
@@ -6,52 +10,85 @@ const requiredText = (label: string) =>
     .trim()
     .min(1, `${label} is required`)
 
+const birthdateField = requiredText('Birthdate').refine(isAtLeast18, 'You must be at least 18 years old')
+const mobileNumberField = requiredText('Mobile number').regex(
+  /^09\d{9}$/,
+  'Enter an 11-digit mobile number in 09XXXXXXXX format',
+)
+
 export const loginSchema = z.object({
   username: requiredText('Username').min(3, 'Username must be at least 3 characters'),
   password: requiredText('Password'),
 })
 
-export const registerSchema = z
-  .object({
-    first_name: requiredText('First name'),
-    middle_name: z.string().trim(),
-    last_name: requiredText('Last name'),
-    suffix_id: requiredText('Suffix'),
-    sex_id: requiredText('Sex'),
-    civil_status_id: requiredText('Civil status'),
-    birthdate: requiredText('Birthdate').refine((value) => {
-      const date = new Date(value)
-      return !Number.isNaN(date.getTime()) && date < new Date()
-    }, 'Enter a valid birthdate'),
-    present_address_house_block_lot: requiredText('House / block / lot'),
-    present_address_street: requiredText('Street'),
-    present_address_barangay: requiredText('Barangay'),
-    present_address_municipality_city: requiredText('Municipality / city'),
-    present_address_province: requiredText('Province'),
-    present_address_region: requiredText('Region'),
-    present_address_zip_code: requiredText('ZIP code'),
-    same_as_present: z.boolean(),
-    permanent_address_house_block_lot: requiredText('House / block / lot'),
-    permanent_address_street: requiredText('Street'),
-    permanent_address_barangay: requiredText('Barangay'),
-    permanent_address_municipality_city: requiredText('Municipality / city'),
-    permanent_address_province: requiredText('Province'),
-    permanent_address_region: requiredText('Region'),
-    permanent_address_zip_code: requiredText('ZIP code'),
-    mobile_number: requiredText('Mobile number'),
-    telephone_number: z.string().trim(),
-    email: z.email('Enter a valid email'),
-    username: requiredText('Username').min(3, 'Username must be at least 3 characters'),
-    password: requiredText('Password').min(8, 'Password must be at least 8 characters'),
-    confirm_password: requiredText('Confirm password'),
-  })
-  .refine((data) => data.password === data.confirm_password, {
-    message: 'Passwords do not match',
-    path: ['confirm_password'],
-  })
+export const registerFieldsSchema = z.object({
+  first_name: requiredText('First name'),
+  middle_name: z.string().trim(),
+  last_name: requiredText('Last name'),
+  suffix_id: requiredText('Suffix'),
+  sex_id: requiredText('Sex'),
+  civil_status_id: requiredText('Civil status'),
+  birthdate: birthdateField,
+  present_address_house_block_lot: requiredText('House / block / lot'),
+  present_address_street: requiredText('Street'),
+  present_address_barangay: requiredText('Barangay'),
+  present_address_municipality_city: requiredText('Municipality / city'),
+  present_address_province: requiredText('Province'),
+  present_address_region: requiredText('Region'),
+  present_address_zip_code: requiredText('ZIP code'),
+  same_as_present: z.boolean(),
+  permanent_address_house_block_lot: requiredText('House / block / lot'),
+  permanent_address_street: requiredText('Street'),
+  permanent_address_barangay: requiredText('Barangay'),
+  permanent_address_municipality_city: requiredText('Municipality / city'),
+  permanent_address_province: requiredText('Province'),
+  permanent_address_region: requiredText('Region'),
+  permanent_address_zip_code: requiredText('ZIP code'),
+  mobile_number: mobileNumberField,
+  telephone_number: z.string().trim(),
+  email: z.email('Enter a valid email'),
+  username: requiredText('Username').min(3, 'Username must be at least 3 characters'),
+  password: requiredText('Password').min(8, 'Password must be at least 8 characters'),
+  confirm_password: requiredText('Confirm password'),
+})
+
+export const registerSchema = registerFieldsSchema.refine((data) => data.password === data.confirm_password, {
+  message: 'Passwords do not match',
+  path: ['confirm_password'],
+})
 
 export type LoginValues = z.infer<typeof loginSchema>
 export type RegisterValues = z.infer<typeof registerSchema>
+
+export const communityMemberSchema = z.object({
+  first_name: requiredText('First name'),
+  middle_name: z.string().trim(),
+  last_name: requiredText('Last name'),
+  suffix_id: requiredText('Suffix'),
+  sex_id: requiredText('Sex'),
+  civil_status_id: requiredText('Civil status'),
+  birthdate: birthdateField,
+  present_address_house_block_lot: requiredText('House / block / lot'),
+  present_address_street: requiredText('Street'),
+  present_address_barangay: requiredText('Barangay'),
+  present_address_municipality_city: requiredText('Municipality / city'),
+  present_address_province: requiredText('Province'),
+  present_address_region: requiredText('Region'),
+  present_address_zip_code: requiredText('ZIP code'),
+  same_as_present: z.boolean(),
+  permanent_address_house_block_lot: requiredText('House / block / lot'),
+  permanent_address_street: requiredText('Street'),
+  permanent_address_barangay: requiredText('Barangay'),
+  permanent_address_municipality_city: requiredText('Municipality / city'),
+  permanent_address_province: requiredText('Province'),
+  permanent_address_region: requiredText('Region'),
+  permanent_address_zip_code: requiredText('ZIP code'),
+  mobile_number: mobileNumberField,
+  telephone_number: z.string().trim(),
+  email: z.email('Enter a valid email'),
+})
+
+export type CommunityMemberValues = z.infer<typeof communityMemberSchema>
 
 export const registerStepFields = [
   ['first_name', 'middle_name', 'last_name', 'suffix_id', 'sex_id', 'civil_status_id', 'birthdate'],
@@ -76,3 +113,38 @@ export const registerStepFields = [
   ['mobile_number', 'telephone_number', 'email'],
   ['username', 'password', 'confirm_password'],
 ] as const
+
+export function parseRegisterStep(step: number, values: RegisterValues) {
+  const fields = registerStepFields[step]
+  const pick = Object.fromEntries(fields.map((field) => [field, true])) as Record<
+    (typeof fields)[number],
+    true
+  >
+
+  return registerFieldsSchema.pick(pick).safeParse(values)
+}
+
+export const registerResolver: Resolver<RegisterValues> = async (values, context, options) => {
+  const names = options.names as (keyof RegisterValues)[] | undefined
+
+  if (!names?.length) {
+    return zodResolver(registerSchema)(values, context, options)
+  }
+
+  const pick = Object.fromEntries(names.map((name) => [name, true]))
+  const checkPasswords = names.includes('password') || names.includes('confirm_password')
+  const schema = checkPasswords
+    ? registerFieldsSchema
+        .pick({
+          password: true,
+          confirm_password: true,
+          ...pick,
+        } as { password: true; confirm_password: true })
+        .refine(
+          (data) => !data.password || !data.confirm_password || data.password === data.confirm_password,
+          { message: 'Passwords do not match', path: ['confirm_password'] },
+        )
+    : registerFieldsSchema.pick(pick as Record<(typeof names)[number], true>)
+
+  return (zodResolver(schema) as unknown as Resolver<RegisterValues>)(values, context, options)
+}

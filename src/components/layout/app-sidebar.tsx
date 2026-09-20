@@ -73,9 +73,9 @@ export function AppSidebar({ className }: { className?: string }) {
           {!collapsed ? (
             <div className="min-w-0 flex-1">
               <p className="truncate text-base leading-tight font-semibold text-[#171717]">
-                Case Management
+                Tanza Resolve
               </p>
-              <p className="mt-0.5 truncate text-sm text-[#666666]">System</p>
+              <p className="mt-0.5 truncate text-sm text-[#666666]">Case Management System</p>
             </div>
           ) : null}
         </div>

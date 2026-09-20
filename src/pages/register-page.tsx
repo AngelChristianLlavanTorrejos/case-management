@@ -1,7 +1,7 @@
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Check } from 'lucide-react'
+import { useState, type ChangeEvent } from 'react'
+import { Controller, useForm, type FieldPath, type UseFormReturn } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 
 import { AuthBrand, AuthShell } from '@/components/auth/auth-shell'
@@ -10,6 +10,7 @@ import { REGISTER_STEPS, WizardProgress } from '@/components/auth/wizard-progres
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { MobileNumberInput } from '@/components/ui/mobile-number-input'
 import {
   Select,
   SelectContent,
@@ -18,7 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getRegisterLookups, registerUser } from '@/lib/auth-api'
-import { type RegisterValues, registerSchema, registerStepFields } from '@/schemas/auth'
+import { maxAdultBirthdate, placeholders } from '@/lib/form-fields'
+import { type RegisterValues, registerResolver, registerStepFields } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import type { LookupOption } from '@/types/auth'
 
@@ -53,6 +55,26 @@ const emptyRegisterValues: RegisterValues = {
   confirm_password: '',
 }
 
+function registerLiveField(
+  form: UseFormReturn<RegisterValues>,
+  name: FieldPath<RegisterValues>,
+  options?: { mask?: (value: string) => string },
+) {
+  const registration = form.register(name)
+
+  return {
+    ...registration,
+    async onChange(event: ChangeEvent<HTMLInputElement>) {
+      if (options?.mask) {
+        event.target.value = options.mask(event.target.value)
+      }
+      await registration.onChange(event)
+      if (form.getFieldState(name).error) {
+        await form.trigger(name)
+      }
+    },
+  }
+}
 function LookupSelect({
   value,
   onChange,
@@ -85,9 +107,9 @@ function LookupSelect({
 export function RegisterPage() {
   const navigate = useNavigate()
   const session = useAuthStore((state) => state.session)
-  const setSession = useAuthStore((state) => state.setSession)
   const [step, setStep] = useState(0)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
 
   const lookups = useQuery({
     queryKey: ['register-lookups'],
@@ -95,9 +117,10 @@ export function RegisterPage() {
   })
 
   const form = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
+    resolver: registerResolver,
     defaultValues: emptyRegisterValues,
-    mode: 'onTouched',
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
   if (session) {
@@ -121,10 +144,10 @@ export function RegisterPage() {
     }
 
     const valid = await form.trigger([...registerStepFields[step]])
-    if (valid) {
-      setSubmitError(null)
-      setStep((current) => current + 1)
-    }
+    if (!valid) return
+
+    setSubmitError(null)
+    setStep((current) => current + 1)
   }
 
   async function onSubmit(values: RegisterValues) {
@@ -144,14 +167,13 @@ export function RegisterPage() {
       : values
 
     try {
-      const nextSession = await registerUser({
+      await registerUser({
         ...payload,
         suffix_id: Number(payload.suffix_id),
         sex_id: Number(payload.sex_id),
         civil_status_id: Number(payload.civil_status_id),
       })
-      setSession(nextSession)
-      navigate('/', { replace: true })
+      setSubmitted(true)
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to create account.')
     }
@@ -159,6 +181,30 @@ export function RegisterPage() {
 
   const sameAsPresent = form.watch('same_as_present')
   const isLastStep = step === REGISTER_STEPS.length - 1
+
+  if (submitted) {
+    return (
+      <AuthShell cardClassName="max-w-[420px]">
+        <AuthBrand description="Create an account" />
+        <div className="flex gap-3">
+          <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-[#EEF4EA] text-[#225008]">
+            <Check className="size-5" />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <h2 className="text-lg font-semibold text-[#171717]">Registration submitted</h2>
+            <p className="mt-1.5 text-sm leading-5 text-[#666666]">
+              Your registration is pending approval. Review usually takes up to 3 working days. You
+              will receive an SMS when your account is active. Please wait for that message before
+              logging in.
+            </p>
+          </div>
+        </div>
+        <Button type="button" className="mt-6 h-10 w-full" onClick={() => navigate('/login', { replace: true })}>
+          Go to login
+        </Button>
+      </AuthShell>
+    )
+  }
 
   return (
     <AuthShell cardClassName="max-w-xl">
@@ -175,7 +221,18 @@ export function RegisterPage() {
         </p>
       ) : null}
 
-      <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <form
+        className="grid gap-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (isLastStep) {
+            void form.handleSubmit(onSubmit)(event)
+            return
+          }
+          void goNext()
+        }}
+        noValidate
+      >
         {step === 0 ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -188,8 +245,9 @@ export function RegisterPage() {
                 <Input
                   id="first_name"
                   className="h-10 bg-white"
+                  placeholder={placeholders.first_name}
                   aria-invalid={Boolean(form.formState.errors.first_name)}
-                  {...form.register('first_name')}
+                  {...registerLiveField(form, 'first_name')}
                 />
               </Field>
               <Field
@@ -198,7 +256,12 @@ export function RegisterPage() {
                 optional
                 error={form.formState.errors.middle_name?.message}
               >
-                <Input id="middle_name" className="h-10 bg-white" {...form.register('middle_name')} />
+                <Input
+                  id="middle_name"
+                  className="h-10 bg-white"
+                  placeholder={placeholders.middle_name}
+                  {...registerLiveField(form, 'middle_name')}
+                />
               </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -211,8 +274,9 @@ export function RegisterPage() {
                 <Input
                   id="last_name"
                   className="h-10 bg-white"
+                  placeholder={placeholders.last_name}
                   aria-invalid={Boolean(form.formState.errors.last_name)}
-                  {...form.register('last_name')}
+                  {...registerLiveField(form, 'last_name')}
                 />
               </Field>
               <Controller
@@ -222,7 +286,10 @@ export function RegisterPage() {
                   <Field label="Suffix" required error={fieldState.error?.message}>
                     <LookupSelect
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        void form.trigger(field.name)
+                      }}
                       options={lookups.data?.suffixes ?? []}
                       placeholder="Select suffix"
                       invalid={Boolean(fieldState.error)}
@@ -239,7 +306,10 @@ export function RegisterPage() {
                   <Field label="Sex" required error={fieldState.error?.message}>
                     <LookupSelect
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        void form.trigger(field.name)
+                      }}
                       options={lookups.data?.sexes ?? []}
                       placeholder="Select sex"
                       invalid={Boolean(fieldState.error)}
@@ -254,7 +324,10 @@ export function RegisterPage() {
                   <Field label="Civil status" required error={fieldState.error?.message}>
                     <LookupSelect
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        void form.trigger(field.name)
+                      }}
                       options={lookups.data?.civilStatuses ?? []}
                       placeholder="Select civil status"
                       invalid={Boolean(fieldState.error)}
@@ -272,9 +345,10 @@ export function RegisterPage() {
               <Input
                 id="birthdate"
                 type="date"
+                max={maxAdultBirthdate()}
                 className="h-10 bg-white"
                 aria-invalid={Boolean(form.formState.errors.birthdate)}
-                {...form.register('birthdate')}
+                {...registerLiveField(form, 'birthdate')}
               />
             </Field>
           </>
@@ -309,20 +383,26 @@ export function RegisterPage() {
 
         {step === 3 ? (
           <>
-            <Field
-              label="Mobile number"
-              htmlFor="mobile_number"
-              required
-              error={form.formState.errors.mobile_number?.message}
-            >
-              <Input
-                id="mobile_number"
-                inputMode="tel"
-                className="h-10 bg-white"
-                aria-invalid={Boolean(form.formState.errors.mobile_number)}
-                {...form.register('mobile_number')}
-              />
-            </Field>
+            <Controller
+              control={form.control}
+              name="mobile_number"
+              render={({ field, fieldState }) => (
+                <Field label="Mobile number" htmlFor="mobile_number" required error={fieldState.error?.message}>
+                  <MobileNumberInput
+                    id="mobile_number"
+                    className="h-10 bg-white"
+                    aria-invalid={Boolean(fieldState.error)}
+                    value={field.value}
+                    onChange={(digits) => {
+                      field.onChange(digits)
+                      if (fieldState.error) {
+                        void form.trigger('mobile_number')
+                      }
+                    }}
+                  />
+                </Field>
+              )}
+            />
             <Field
               label="Telephone number"
               htmlFor="telephone_number"
@@ -332,8 +412,9 @@ export function RegisterPage() {
               <Input
                 id="telephone_number"
                 inputMode="tel"
+                placeholder={placeholders.telephone_number}
                 className="h-10 bg-white"
-                {...form.register('telephone_number')}
+                {...registerLiveField(form, 'telephone_number')}
               />
             </Field>
             <Field
@@ -346,9 +427,10 @@ export function RegisterPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
+                placeholder={placeholders.email}
                 className="h-10 bg-white"
                 aria-invalid={Boolean(form.formState.errors.email)}
-                {...form.register('email')}
+                {...registerLiveField(form, 'email')}
               />
             </Field>
           </>
@@ -365,9 +447,10 @@ export function RegisterPage() {
               <Input
                 id="reg-username"
                 autoComplete="username"
+                placeholder={placeholders.username}
                 className="h-10 bg-white"
                 aria-invalid={Boolean(form.formState.errors.username)}
-                {...form.register('username')}
+                {...registerLiveField(form, 'username')}
               />
             </Field>
             <Field
@@ -380,9 +463,10 @@ export function RegisterPage() {
                 id="reg-password"
                 type="password"
                 autoComplete="new-password"
+                placeholder={placeholders.password}
                 className="h-10 bg-white"
                 aria-invalid={Boolean(form.formState.errors.password)}
-                {...form.register('password')}
+                {...registerLiveField(form, 'password')}
               />
             </Field>
             <Field
@@ -395,9 +479,10 @@ export function RegisterPage() {
                 id="confirm_password"
                 type="password"
                 autoComplete="new-password"
+                placeholder={placeholders.confirm_password}
                 className="h-10 bg-white"
                 aria-invalid={Boolean(form.formState.errors.confirm_password)}
-                {...form.register('confirm_password')}
+                {...registerLiveField(form, 'confirm_password')}
               />
             </Field>
           </>
@@ -416,21 +501,19 @@ export function RegisterPage() {
               Back
             </Button>
           ) : null}
-          {isLastStep ? (
-            <Button type="submit" className="h-10 flex-1" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Submitting…' : 'Create Account'}
-            </Button>
-          ) : (
-            <Button type="button" className="h-10 flex-1" onClick={() => void goNext()}>
-              Next
-            </Button>
-          )}
+          <Button type="submit" className="h-10 flex-1" disabled={form.formState.isSubmitting}>
+            {isLastStep
+              ? form.formState.isSubmitting
+                ? 'Submitting…'
+                : 'Create Account'
+              : 'Next'}
+          </Button>
         </div>
       </form>
 
       <p className="mt-5 text-center text-sm text-[#666666]">
         Already have an account?{' '}
-        <Link to="/login" className="font-medium text-brand hover:underline">
+        <Link to="/login" className="cursor-pointer font-medium text-brand hover:underline">
           Login
         </Link>
       </p>
@@ -488,8 +571,9 @@ function AddressFields({
               id={name}
               className="h-10 bg-white"
               disabled={disabled}
+              placeholder={placeholders[key]}
               aria-invalid={Boolean(form.formState.errors[name])}
-              {...form.register(name)}
+              {...registerLiveField(form, name)}
             />
           </Field>
         )
