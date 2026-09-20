@@ -3,10 +3,12 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { BaselineSecurityPage } from '@/pages/baseline-security-page'
+import { ChangePasswordPage } from '@/pages/change-password-page'
 import { CivilStatusPage } from '@/pages/civil-status-page'
 import { CommunityMembersPage } from '@/pages/community-members-page'
 import { HomePage } from '@/pages/home-page'
 import { LoginPage } from '@/pages/login-page'
+import { MyProfilePage } from '@/pages/my-profile-page'
 import { RegisterPage } from '@/pages/register-page'
 import { SuffixPage } from '@/pages/suffix-page'
 import { UserActivityLogPage } from '@/pages/user-activity-log-page'
@@ -41,6 +43,8 @@ function App() {
           <Route path="/community-members" element={<CommunityMembersPage />} />
           <Route path="/user-activity-log" element={<UserActivityLogPage />} />
           <Route path="/baseline-security" element={<BaselineSecurityPage />} />
+          <Route path="/my-profile" element={<MyProfilePage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/masterfile/suffixes" element={<SuffixPage />} />
           <Route path="/masterfile/civil-status" element={<CivilStatusPage />} />
         </Route>

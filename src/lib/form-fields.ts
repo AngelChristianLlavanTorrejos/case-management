@@ -15,6 +15,8 @@ export const placeholders = {
   username: 'Enter username',
   password: 'Enter password',
   confirm_password: 'Confirm password',
+  current_password: 'Enter current password',
+  new_password: 'Enter new password',
   lookup_suffix: 'e.g. Jr.',
   lookup_civil_status: 'e.g. Married',
   search_member: 'e.g. Juan Dela Cruz',

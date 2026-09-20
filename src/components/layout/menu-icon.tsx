@@ -1,8 +1,10 @@
 import {
   Circle,
+  CircleUser,
   FolderTree,
   HeartHandshake,
   House,
+  KeyRound,
   LayoutDashboard,
   ScrollText,
   ShieldCheck,
@@ -13,10 +15,12 @@ import {
 
 const ICONS: Record<string, LucideIcon> = {
   circle: Circle,
+  circleuser: CircleUser,
   foldertree: FolderTree,
   hearthandshake: HeartHandshake,
   house: House,
   home: House,
+  keyround: KeyRound,
   layoutdashboard: LayoutDashboard,
   scrolltext: ScrollText,
   shieldcheck: ShieldCheck,

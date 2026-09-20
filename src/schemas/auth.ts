@@ -173,3 +173,45 @@ export function createRegisterResolver(policy: SecuritySettings | null): Resolve
 }
 
 export const registerResolver = createRegisterResolver(null)
+
+export const changePasswordSchema = z
+  .object({
+    current_password: requiredText('Current password'),
+    new_password: requiredText('New password'),
+    confirm_password: requiredText('Confirm password'),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
+  })
+  .refine((data) => data.new_password !== data.current_password, {
+    message: 'New password must be different from your current password.',
+    path: ['new_password'],
+  })
+
+export type ChangePasswordValues = z.infer<typeof changePasswordSchema>
+
+export function createChangePasswordResolver(
+  policy: SecuritySettings | null,
+  username: string,
+): Resolver<ChangePasswordValues> {
+  return async (values, context, options) => {
+    const result = await (zodResolver(changePasswordSchema) as Resolver<ChangePasswordValues>)(
+      values,
+      context,
+      options,
+    )
+    const message = checkPassword(values.new_password, username, policy)
+    if (!message) return result
+    return {
+      values: {},
+      errors: {
+        ...result.errors,
+        new_password: {
+          type: 'custom',
+          message,
+        },
+      },
+    }
+  }
+}
