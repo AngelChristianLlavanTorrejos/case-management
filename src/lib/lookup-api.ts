@@ -78,17 +78,32 @@ export async function listLookups(kind: LookupKind, query: LookupListQuery): Pro
   }
 }
 
-export async function createLookup(kind: LookupKind, name: string): Promise<void> {
-  const { error } = await supabase.rpc(createRpc[kind], { p_name: name })
+export async function createLookup(kind: LookupKind, name: string, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc(createRpc[kind], {
+    p_name: name,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }
 
-export async function updateLookup(kind: LookupKind, id: number, name: string): Promise<void> {
-  const { error } = await supabase.rpc(updateRpc[kind], { p_id: id, p_name: name })
+export async function updateLookup(
+  kind: LookupKind,
+  id: number,
+  name: string,
+  actorUserId: number,
+): Promise<void> {
+  const { error } = await supabase.rpc(updateRpc[kind], {
+    p_id: id,
+    p_name: name,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }
 
-export async function deleteLookup(kind: LookupKind, id: number): Promise<void> {
-  const { error } = await supabase.rpc(deleteRpc[kind], { p_id: id })
+export async function deleteLookup(kind: LookupKind, id: number, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc(deleteRpc[kind], {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }

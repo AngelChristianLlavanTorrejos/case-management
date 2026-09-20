@@ -18,6 +18,7 @@ export const placeholders = {
   lookup_suffix: 'e.g. Jr.',
   lookup_civil_status: 'e.g. Married',
   search_member: 'e.g. Juan Dela Cruz',
+  search_activity: 'e.g. Juan Dela Cruz',
 } as const
 
 export function maskMobileNumber(value: string) {

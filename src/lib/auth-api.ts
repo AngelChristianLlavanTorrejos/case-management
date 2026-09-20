@@ -64,7 +64,16 @@ export async function loginUser(username: string, password: string): Promise<Aut
     throw new Error(error.message.replace(/^.*ERROR:\s*/i, ''))
   }
 
-  return toSession(data)
+  const parsed =
+    typeof data === 'string'
+      ? (JSON.parse(data) as AuthRpcResult & { error?: string })
+      : (data as AuthRpcResult & { error?: string })
+
+  if (parsed?.error) {
+    throw new Error(parsed.error)
+  }
+
+  return toSession(parsed)
 }
 
 export async function logoutUser(userId: number): Promise<void> {

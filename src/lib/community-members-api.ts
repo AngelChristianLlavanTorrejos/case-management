@@ -124,29 +124,42 @@ export async function getCommunityMember(id: number): Promise<CommunityMember> {
   return parseJson<CommunityMember>(data)
 }
 
-export async function approveCommunityMember(id: number): Promise<void> {
-  const { error } = await supabase.rpc('approve_community_member', { p_id: id })
+export async function approveCommunityMember(id: number, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc('approve_community_member', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }
 
-export async function disapproveCommunityMember(id: number): Promise<void> {
-  const { error } = await supabase.rpc('disapprove_community_member', { p_id: id })
+export async function disapproveCommunityMember(id: number, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc('disapprove_community_member', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }
 
-export async function restrictCommunityMember(id: number): Promise<void> {
-  const { error } = await supabase.rpc('restrict_community_member', { p_id: id })
+export async function restrictCommunityMember(id: number, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc('restrict_community_member', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }
 
-export async function deleteCommunityMember(id: number): Promise<void> {
-  const { error } = await supabase.rpc('delete_community_member', { p_id: id })
+export async function deleteCommunityMember(id: number, actorUserId: number): Promise<void> {
+  const { error } = await supabase.rpc('delete_community_member', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 }
 
 export async function updateCommunityMember(
   id: number,
   values: CommunityMemberUpdate,
+  actorUserId: number,
 ): Promise<void> {
   const { error } = await supabase.rpc('update_community_member', {
     p_id: id,
@@ -174,6 +187,7 @@ export async function updateCommunityMember(
     p_mobile_number: values.mobile_number,
     p_telephone_number: values.telephone_number,
     p_email: values.email,
+    p_actor_user_id: actorUserId,
   })
 
   if (error) throw rpcError(error.message)

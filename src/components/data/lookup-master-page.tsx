@@ -35,6 +35,7 @@ import {
   type LookupRow,
 } from '@/lib/lookup-api'
 import { lookupNameSchema, type LookupNameValues } from '@/schemas/lookup'
+import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
 
@@ -48,6 +49,7 @@ type LookupMasterPageProps = {
 export function LookupMasterPage({ kind, title, description, addLabel }: LookupMasterPageProps) {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
+  const actorUserId = useAuthStore((state) => state.session?.id)
   const [search, setSearch] = useState('')
   const [type, setType] = useState<'all' | 'system' | 'custom'>('all')
   const [sortKey, setSortKey] = useState<'name' | 'can_delete'>('name')
@@ -91,11 +93,12 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
 
   const saveMutation = useMutation({
     mutationFn: async (values: LookupNameValues) => {
+      if (!actorUserId) throw new Error('You must be signed in.')
       if (editing) {
-        await updateLookup(kind, editing.id, values.name)
+        await updateLookup(kind, editing.id, values.name, actorUserId)
         return 'updated' as const
       }
-      await createLookup(kind, values.name)
+      await createLookup(kind, values.name, actorUserId)
       return 'created' as const
     },
     onSuccess: async (action) => {
@@ -115,7 +118,8 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
 
   const deleteMutation = useMutation({
     mutationFn: async (row: LookupRow) => {
-      await deleteLookup(kind, row.id)
+      if (!actorUserId) throw new Error('You must be signed in.')
+      await deleteLookup(kind, row.id, actorUserId)
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['lookups', kind] })

@@ -47,6 +47,7 @@ import {
   type CommunityMemberStatusGroup,
 } from '@/lib/community-members-api'
 import { communityMemberSchema, type CommunityMemberValues } from '@/schemas/auth'
+import { useAuthStore } from '@/stores/auth-store'
 import type { LookupOption } from '@/types/auth'
 
 const PAGE_SIZE = 10
@@ -138,6 +139,7 @@ function DetailItem({ label, value }: { label: string; value: string | number | 
 export function CommunityMembersPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
+  const actorUserId = useAuthStore((state) => state.session?.id)
   const [tab, setTab] = useState<CommunityMemberStatusGroup>('residents')
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('display_name')
@@ -195,7 +197,8 @@ export function CommunityMembersPage() {
     if (!ok) return
 
     try {
-      await approveCommunityMember(row.id)
+      if (!actorUserId) throw new Error('You must be signed in.')
+      await approveCommunityMember(row.id, actorUserId)
       await invalidateList()
       toast.success('Registration approved.')
     } catch (error) {
@@ -213,7 +216,8 @@ export function CommunityMembersPage() {
     if (!ok) return
 
     try {
-      await disapproveCommunityMember(row.id)
+      if (!actorUserId) throw new Error('You must be signed in.')
+      await disapproveCommunityMember(row.id, actorUserId)
       await invalidateList()
       toast.success('Registration request deleted.')
     } catch (error) {
@@ -231,7 +235,8 @@ export function CommunityMembersPage() {
     if (!ok) return
 
     try {
-      await restrictCommunityMember(row.id)
+      if (!actorUserId) throw new Error('You must be signed in.')
+      await restrictCommunityMember(row.id, actorUserId)
       await invalidateList()
       toast.success('Resident restricted.')
     } catch (error) {
@@ -249,7 +254,8 @@ export function CommunityMembersPage() {
     if (!ok) return
 
     try {
-      await deleteCommunityMember(row.id)
+      if (!actorUserId) throw new Error('You must be signed in.')
+      await deleteCommunityMember(row.id, actorUserId)
       await invalidateList()
       toast.success('Resident deleted.')
     } catch (error) {
@@ -333,6 +339,7 @@ export function CommunityMembersPage() {
       />
       <MemberEditDialog
         memberId={editId}
+        actorUserId={actorUserId}
         onClose={() => setEditId(null)}
         onSaved={invalidateList}
       />
@@ -429,10 +436,12 @@ function MemberViewDialog({
 
 function MemberEditDialog({
   memberId,
+  actorUserId,
   onClose,
   onSaved,
 }: {
   memberId: number | null
+  actorUserId: number | undefined
   onClose: () => void
   onSaved: () => Promise<void>
 }) {
@@ -522,6 +531,7 @@ function MemberEditDialog({
             permanent_address_zip_code: values.permanent_address_zip_code,
           }
 
+      if (!actorUserId) throw new Error('You must be signed in.')
       await updateCommunityMember(memberId, {
         first_name: values.first_name,
         middle_name: values.middle_name,
@@ -541,7 +551,7 @@ function MemberEditDialog({
         mobile_number: values.mobile_number,
         telephone_number: values.telephone_number,
         email: values.email,
-      })
+      }, actorUserId)
     },
     onSuccess: async () => {
       await onSaved()
