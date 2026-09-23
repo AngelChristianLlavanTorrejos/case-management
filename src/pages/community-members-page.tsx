@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, Check, Eye, Pencil, Trash2, UserCheck } from 'lucide-react'
+import { Ban, Eye, Pencil, Trash2, UserCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import { getRegisterLookups } from '@/lib/auth-api'
@@ -37,16 +36,13 @@ import {
 } from '@/lib/form-fields'
 import {
   allowCommunityMember,
-  approveCommunityMember,
   deleteCommunityMember,
-  disapproveCommunityMember,
   getCommunityMember,
   listCommunityMembers,
   restrictCommunityMember,
   updateCommunityMember,
   type CommunityMember,
   type CommunityMemberListRow,
-  type CommunityMemberStatusGroup,
 } from '@/lib/community-members-api'
 import { communityMemberSchema, type CommunityMemberValues } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
@@ -142,7 +138,6 @@ export function CommunityMembersPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const actorUserId = useAuthStore((state) => state.session?.id)
-  const [tab, setTab] = useState<CommunityMemberStatusGroup>('residents')
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('display_name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -151,10 +146,10 @@ export function CommunityMembersPage() {
   const [editId, setEditId] = useState<number | null>(null)
 
   const listQuery = useQuery({
-    queryKey: ['community-members', tab, search, sortKey, sortDir, page],
+    queryKey: ['community-members', search, sortKey, sortDir, page],
     queryFn: () =>
       listCommunityMembers({
-        statusGroup: tab,
+        statusGroup: 'residents',
         search,
         sortKey,
         sortDir,
@@ -177,7 +172,7 @@ export function CommunityMembersPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [tab, search])
+  }, [search])
 
   useEffect(() => {
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -188,43 +183,6 @@ export function CommunityMembersPage() {
 
   async function invalidateList() {
     await queryClient.invalidateQueries({ queryKey: ['community-members'] })
-  }
-
-  async function handleApprove(row: CommunityMemberListRow) {
-    const ok = await confirm({
-      title: 'Approve registration?',
-      description: `Approve ${row.display_name} so they can sign in as a registered resident.`,
-      confirmLabel: 'Approve',
-    })
-    if (!ok) return
-
-    try {
-      if (!actorUserId) throw new Error('You must be signed in.')
-      await approveCommunityMember(row.id, actorUserId)
-      await invalidateList()
-      toast.success('Registration approved.')
-    } catch (error) {
-      toast.error('Unable to approve this request.', error instanceof Error ? error.message : undefined)
-    }
-  }
-
-  async function handleDisapprove(row: CommunityMemberListRow) {
-    const ok = await confirm({
-      title: 'Disapprove registration?',
-      description: `This will permanently delete ${row.display_name} and their personal records.`,
-      confirmLabel: 'Disapprove',
-      variant: 'destructive',
-    })
-    if (!ok) return
-
-    try {
-      if (!actorUserId) throw new Error('You must be signed in.')
-      await disapproveCommunityMember(row.id, actorUserId)
-      await invalidateList()
-      toast.success('Registration request deleted.')
-    } catch (error) {
-      toast.error('Unable to disapprove this request.', error instanceof Error ? error.message : undefined)
-    }
   }
 
   async function handleRestrict(row: CommunityMemberListRow) {
@@ -292,12 +250,6 @@ export function CommunityMembersPage() {
     setSortDir('asc')
   }
 
-  const requestActions: PageContentAction<CommunityMemberListRow>[] = [
-    { label: 'View', icon: Eye, onSelect: (row) => setViewId(row.id) },
-    { label: 'Approve', icon: Check, onSelect: (row) => void handleApprove(row) },
-    { label: 'Disapprove', icon: Trash2, onSelect: (row) => void handleDisapprove(row), variant: 'destructive' },
-  ]
-
   const residentActions: PageContentAction<CommunityMemberListRow>[] = [
     { label: 'View', icon: Eye, onSelect: (row) => setViewId(row.id) },
     { label: 'Edit', icon: Pencil, onSelect: (row) => setEditId(row.id) },
@@ -321,19 +273,10 @@ export function CommunityMembersPage() {
     <div>
       <PageHeader
         title="Community Members"
-        description="Review registration requests and manage registered residents."
+        description="Manage registered members."
       />
 
-      <Tabs
-        value={tab}
-        onValueChange={(value) => setTab(value as CommunityMemberStatusGroup)}
-        className="mt-5"
-      >
-        <TabsList>
-          <TabsTrigger value="residents">Registered Members</TabsTrigger>
-          <TabsTrigger value="requests">Registration Requests</TabsTrigger>
-        </TabsList>
-        <TabsContent value={tab}>
+      <div className="mt-5">
           <PageContent
             searchPlaceholder={placeholders.search_member}
             searchValue={search}
@@ -361,10 +304,9 @@ export function CommunityMembersPage() {
             pageSize={PAGE_SIZE}
             total={total}
             onPageChange={setPage}
-            actions={tab === 'requests' ? requestActions : residentActions}
+            actions={residentActions}
           />
-        </TabsContent>
-      </Tabs>
+      </div>
 
       <MemberViewDialog
         memberId={viewId}

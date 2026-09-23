@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Controller, useForm, type FieldPath, type UseFormReturn } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 
@@ -18,12 +17,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getRegisterLookups, registerUser } from '@/lib/auth-api'
+import { getRegisterLookups, sendRegistrationOtp, verifyRegistrationOtp, type RegisterPayload } from '@/lib/auth-api'
 import { getSecuritySettings } from '@/lib/security-settings-api'
 import { maxAdultBirthdate, placeholders } from '@/lib/form-fields'
 import { type RegisterValues, createRegisterResolver, registerStepFields } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import type { LookupOption } from '@/types/auth'
+
+const OTP_COOLDOWN_SECONDS = 60
+
+function maskMobile(value: string) {
+  if (value.length < 8) return value
+  return `${value.slice(0, 4)}***${value.slice(-4)}`
+}
+
+function toRegisterPayload(values: RegisterValues): RegisterPayload {
+  const payload = values.same_as_present
+    ? {
+        ...values,
+        permanent_address_house_block_lot: values.present_address_house_block_lot,
+        permanent_address_street: values.present_address_street,
+        permanent_address_barangay: values.present_address_barangay,
+        permanent_address_municipality_city: values.present_address_municipality_city,
+        permanent_address_province: values.present_address_province,
+        permanent_address_region: values.present_address_region,
+        permanent_address_zip_code: values.present_address_zip_code,
+      }
+    : values
+
+  return {
+    ...payload,
+    suffix_id: Number(payload.suffix_id),
+    sex_id: Number(payload.sex_id),
+    civil_status_id: Number(payload.civil_status_id),
+  }
+}
 
 const emptyRegisterValues: RegisterValues = {
   first_name: '',
@@ -108,9 +136,14 @@ function LookupSelect({
 export function RegisterPage() {
   const navigate = useNavigate()
   const session = useAuthStore((state) => state.session)
+  const setSession = useAuthStore((state) => state.setSession)
   const [step, setStep] = useState(0)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitted, setSubmitted] = useState(false)
+  const [otpStep, setOtpStep] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [pendingPayload, setPendingPayload] = useState<RegisterPayload | null>(null)
+  const [cooldown, setCooldown] = useState(0)
+  const [verifying, setVerifying] = useState(false)
 
   const lookups = useQuery({
     queryKey: ['register-lookups'],
@@ -130,6 +163,14 @@ export function RegisterPage() {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = window.setInterval(() => {
+      setCooldown((current) => (current > 0 ? current - 1 : 0))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldown])
 
   if (session) {
     return <Navigate to="/" replace />
@@ -160,56 +201,115 @@ export function RegisterPage() {
 
   async function onSubmit(values: RegisterValues) {
     setSubmitError(null)
-
-    const payload = values.same_as_present
-      ? {
-          ...values,
-          permanent_address_house_block_lot: values.present_address_house_block_lot,
-          permanent_address_street: values.present_address_street,
-          permanent_address_barangay: values.present_address_barangay,
-          permanent_address_municipality_city: values.present_address_municipality_city,
-          permanent_address_province: values.present_address_province,
-          permanent_address_region: values.present_address_region,
-          permanent_address_zip_code: values.present_address_zip_code,
-        }
-      : values
+    const payload = toRegisterPayload(values)
 
     try {
-      await registerUser({
-        ...payload,
-        suffix_id: Number(payload.suffix_id),
-        sex_id: Number(payload.sex_id),
-        civil_status_id: Number(payload.civil_status_id),
+      await sendRegistrationOtp({
+        username: payload.username,
+        email: payload.email,
+        mobile_number: payload.mobile_number,
       })
-      setSubmitted(true)
+      setPendingPayload(payload)
+      setOtp('')
+      setOtpStep(true)
+      setCooldown(OTP_COOLDOWN_SECONDS)
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Unable to create account.')
+      setSubmitError(error instanceof Error ? error.message : 'Unable to send the OTP.')
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (!pendingPayload) return
+    setSubmitError(null)
+    setVerifying(true)
+
+    try {
+      const nextSession = await verifyRegistrationOtp({
+        ...pendingPayload,
+        otp,
+      })
+      setSession(nextSession)
+      navigate('/', { replace: true })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to verify the OTP.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    if (!pendingPayload || cooldown > 0) return
+    setSubmitError(null)
+
+    try {
+      await sendRegistrationOtp({
+        username: pendingPayload.username,
+        email: pendingPayload.email,
+        mobile_number: pendingPayload.mobile_number,
+      })
+      setCooldown(OTP_COOLDOWN_SECONDS)
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to resend the OTP.')
     }
   }
 
   const sameAsPresent = form.watch('same_as_present')
   const isLastStep = step === REGISTER_STEPS.length - 1
 
-  if (submitted) {
+  if (otpStep && pendingPayload) {
     return (
       <AuthShell cardClassName="max-w-[420px]">
-        <AuthBrand description="Create an account" />
-        <div className="flex gap-3">
-          <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-[#EEF4EA] text-[#225008]">
-            <Check className="size-5" />
-          </span>
-          <div className="min-w-0 pt-0.5">
-            <h2 className="text-lg font-semibold text-[#171717]">Registration submitted</h2>
-            <p className="mt-1.5 text-sm leading-5 text-[#666666]">
-              Your registration is pending approval. Review usually takes up to 3 working days. You
-              will receive an SMS when your account is active. Please wait for that message before
-              logging in.
-            </p>
+        <AuthBrand description="Verify your mobile number" />
+        <p className="text-sm leading-5 text-[#666666]">
+          Enter the OTP sent to {maskMobile(pendingPayload.mobile_number)}. It expires in 5 minutes.
+        </p>
+        <form
+          className="mt-5 grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void handleVerifyOtp()
+          }}
+        >
+          <Field label="OTP" htmlFor="otp" required error={submitError ?? undefined}>
+            <Input
+              id="otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              className="h-10 bg-white"
+              maxLength={8}
+              placeholder={placeholders.otp}
+              value={otp}
+              onChange={(event) => {
+                setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))
+                if (submitError) setSubmitError(null)
+              }}
+            />
+          </Field>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 flex-1 bg-white"
+              onClick={() => {
+                setOtpStep(false)
+                setSubmitError(null)
+              }}
+            >
+              Back
+            </Button>
+            <Button type="submit" className="h-10 flex-1" disabled={verifying || otp.length < 4}>
+              {verifying ? 'Verifying…' : 'Verify'}
+            </Button>
           </div>
-        </div>
-        <Button type="button" className="mt-6 h-10 w-full" onClick={() => navigate('/login', { replace: true })}>
-          Go to login
-        </Button>
+          <button
+            type="button"
+            className="cursor-pointer text-sm font-medium text-brand hover:underline disabled:cursor-not-allowed disabled:text-[#666666] disabled:no-underline"
+            disabled={cooldown > 0}
+            onClick={() => void handleResendOtp()}
+          >
+            {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend OTP'}
+          </button>
+        </form>
       </AuthShell>
     )
   }
@@ -512,8 +612,8 @@ export function RegisterPage() {
           <Button type="submit" className="h-10 flex-1" disabled={form.formState.isSubmitting}>
             {isLastStep
               ? form.formState.isSubmitting
-                ? 'Submitting…'
-                : 'Create Account'
+                ? 'Sending OTP…'
+                : 'Send OTP'
               : 'Next'}
           </Button>
         </div>

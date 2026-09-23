@@ -6,7 +6,7 @@ export type LookupRow = {
   can_delete: boolean
 }
 
-export type LookupKind = 'suffix' | 'civil_status'
+export type LookupKind = 'suffix' | 'civil_status' | 'complaint_type'
 
 export type LookupListQuery = {
   search: string
@@ -22,24 +22,28 @@ export type LookupListResult = {
   total: number
 }
 
-const tables: Record<LookupKind, 'suffixes' | 'civil_status'> = {
+const tables: Record<LookupKind, 'suffixes' | 'civil_status' | 'complaint_types'> = {
   suffix: 'suffixes',
   civil_status: 'civil_status',
+  complaint_type: 'complaint_types',
 }
 
 const createRpc: Record<LookupKind, string> = {
   suffix: 'create_suffix',
   civil_status: 'create_civil_status',
+  complaint_type: 'create_complaint_type',
 }
 
 const updateRpc: Record<LookupKind, string> = {
   suffix: 'update_suffix',
   civil_status: 'update_civil_status',
+  complaint_type: 'update_complaint_type',
 }
 
 const deleteRpc: Record<LookupKind, string> = {
   suffix: 'delete_suffix',
   civil_status: 'delete_civil_status',
+  complaint_type: 'delete_complaint_type',
 }
 
 function rpcError(message: string) {
@@ -76,6 +80,19 @@ export async function listLookups(kind: LookupKind, query: LookupListQuery): Pro
     rows: (data ?? []) as LookupRow[],
     total: count ?? 0,
   }
+}
+
+export async function listLookupOptions(kind: LookupKind): Promise<Pick<LookupRow, 'id' | 'name'>[]> {
+  const { data, error } = await supabase
+    .from(tables[kind])
+    .select('id, name')
+    .order('id', { ascending: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? []) as Pick<LookupRow, 'id' | 'name'>[]
 }
 
 export async function createLookup(kind: LookupKind, name: string, actorUserId: number): Promise<void> {

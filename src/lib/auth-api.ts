@@ -88,41 +88,53 @@ export async function logoutUser(userId: number): Promise<void> {
   }
 }
 
-export async function registerUser(payload: RegisterPayload): Promise<AuthSession> {
-  const { data, error } = await supabase.rpc('register_user', {
-    p_first_name: payload.first_name,
-    p_middle_name: payload.middle_name,
-    p_last_name: payload.last_name,
-    p_suffix_id: payload.suffix_id,
-    p_sex_id: payload.sex_id,
-    p_civil_status_id: payload.civil_status_id,
-    p_birthdate: payload.birthdate,
-    p_present_address_house_block_lot: payload.present_address_house_block_lot,
-    p_present_address_street: payload.present_address_street,
-    p_present_address_barangay: payload.present_address_barangay,
-    p_present_address_municipality_city: payload.present_address_municipality_city,
-    p_present_address_province: payload.present_address_province,
-    p_present_address_region: payload.present_address_region,
-    p_present_address_zip_code: payload.present_address_zip_code,
-    p_permanent_address_house_block_lot: payload.permanent_address_house_block_lot,
-    p_permanent_address_street: payload.permanent_address_street,
-    p_permanent_address_barangay: payload.permanent_address_barangay,
-    p_permanent_address_municipality_city: payload.permanent_address_municipality_city,
-    p_permanent_address_province: payload.permanent_address_province,
-    p_permanent_address_region: payload.permanent_address_region,
-    p_permanent_address_zip_code: payload.permanent_address_zip_code,
-    p_mobile_number: payload.mobile_number,
-    p_telephone_number: payload.telephone_number,
-    p_email: payload.email,
-    p_username: payload.username,
-    p_password: payload.password,
-  })
+async function invokeRegistrationOtp<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('registration-otp', { body })
 
   if (error) {
-    throw new Error(error.message.replace(/^.*ERROR:\s*/i, ''))
+    let message = error.message
+    try {
+      const response = (error as { context?: Response }).context
+      if (response) {
+        const parsed = (await response.json()) as { error?: string }
+        if (parsed?.error) message = parsed.error
+      }
+    } catch {
+      // keep the original message
+    }
+    throw new Error(message)
   }
 
-  return toSession(data)
+  const parsed = data as { error?: string } & T
+  if (parsed && typeof parsed === 'object' && 'error' in parsed && parsed.error) {
+    throw new Error(parsed.error)
+  }
+
+  return parsed
+}
+
+export async function sendRegistrationOtp(payload: {
+  username: string
+  email: string
+  mobile_number: string
+}): Promise<{ expires_at: string | null }> {
+  const result = await invokeRegistrationOtp<{ ok?: boolean; expires_at?: string | null }>({
+    action: 'send',
+    username: payload.username,
+    email: payload.email,
+    mobile_number: payload.mobile_number,
+  })
+  return { expires_at: result.expires_at ?? null }
+}
+
+export async function verifyRegistrationOtp(
+  payload: RegisterPayload & { otp: string },
+): Promise<AuthSession> {
+  const result = await invokeRegistrationOtp<{ session?: unknown }>({
+    action: 'verify',
+    ...payload,
+  })
+  return toSession(result.session)
 }
 
 export async function getUserProfile(userId: number): Promise<{ displayName: string; roleName: string }> {

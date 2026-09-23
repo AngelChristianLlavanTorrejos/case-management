@@ -198,7 +198,7 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
       <PageContent
         title={title}
         description={description}
-        searchPlaceholder={kind === 'suffix' ? placeholders.lookup_suffix : placeholders.lookup_civil_status}
+        searchPlaceholder={placeholders[`lookup_${kind}`]}
         searchValue={search}
         onSearchChange={setSearch}
         filters={
@@ -268,7 +268,7 @@ export function LookupMasterPage({ kind, title, description, addLabel }: LookupM
                 id={`${kind}-name`}
                 icon={<Type />}
                 {...form.register('name')}
-                placeholder={kind === 'suffix' ? placeholders.lookup_suffix : placeholders.lookup_civil_status}
+                placeholder={placeholders[`lookup_${kind}`]}
               />
             </Field>
             {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}

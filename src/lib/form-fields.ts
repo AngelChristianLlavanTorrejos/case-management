@@ -19,8 +19,11 @@ export const placeholders = {
   new_password: 'Enter new password',
   lookup_suffix: 'e.g. Jr.',
   lookup_civil_status: 'e.g. Married',
+  lookup_complaint_type: 'e.g. Property Dispute',
   search_member: 'e.g. Juan Dela Cruz',
   search_activity: 'e.g. Juan Dela Cruz',
+  search_complaint: 'e.g. Property Dispute',
+  otp: 'Enter OTP',
 } as const
 
 export function formatStatusLabel(value: string) {
