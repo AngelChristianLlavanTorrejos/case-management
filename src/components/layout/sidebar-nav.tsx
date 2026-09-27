@@ -28,7 +28,7 @@ export function SidebarNav({
   onNavigate?: () => void
 }) {
   return (
-    <nav className="grid gap-0.5 pl-2 pr-4" aria-label="Main">
+    <nav className="grid w-full min-w-0 gap-0.5 pl-2 pr-4" aria-label="Main">
       {items.map((item) => (
         <SidebarNavItem
           key={item.id}
@@ -63,14 +63,14 @@ function SidebarNavItem({
 
   if (isParent) {
     return (
-      <div>
+      <div className="w-full min-w-0">
         <button
           type="button"
           title={item.name}
           onClick={() => setOpen((current) => !current)}
           aria-expanded={open}
           className={cn(
-            'grid h-9 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent',
+            'grid h-9 w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent',
             collapsed ? 'grid-cols-1 justify-items-center px-0' : 'grid-cols-[1rem_minmax(0,1fr)_1rem]',
             childActive && 'text-[#171717]',
           )}
@@ -80,20 +80,20 @@ function SidebarNavItem({
             <>
               <span className="min-w-0 truncate">{item.name}</span>
               {open ? (
-                <ChevronUp className="size-4 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
+                <ChevronUp className="size-4 shrink-0 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
               ) : (
-                <ChevronDown className="size-4 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
+                <ChevronDown className="size-4 shrink-0 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
               )}
             </>
           ) : null}
         </button>
         {open && !collapsed ? (
-          <div className="ml-4">
+          <div className="ml-4 min-w-0">
             {item.children.map((child, index) => {
               const isLast = index === item.children.length - 1
 
               return (
-                <div key={child.id} className="relative pl-4">
+                <div key={child.id} className="relative min-w-0 pl-4">
                   <span
                     className={cn(
                       'absolute top-0 left-0 w-px bg-[#D4D4D4]',
@@ -131,7 +131,7 @@ function SidebarNavItem({
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm hover:bg-sidebar-accent',
+          'flex h-9 w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-2 text-sm hover:bg-sidebar-accent',
           collapsed && 'justify-center px-0',
           isActive
             ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
