@@ -21,10 +21,12 @@ function hasActiveChild(pathname: string, node: MenuNode): boolean {
 export function SidebarNav({
   items,
   collapsed,
+  expandAll = false,
   onNavigate,
 }: {
   items: MenuNode[]
   collapsed: boolean
+  expandAll?: boolean
   onNavigate?: () => void
 }) {
   return (
@@ -34,6 +36,7 @@ export function SidebarNav({
           key={item.id}
           item={item}
           collapsed={collapsed}
+          expandAll={expandAll}
           onNavigate={onNavigate}
         />
       ))}
@@ -44,16 +47,19 @@ export function SidebarNav({
 function SidebarNavItem({
   item,
   collapsed,
+  expandAll = false,
   onNavigate,
 }: {
   item: MenuNode
   collapsed: boolean
+  expandAll?: boolean
   onNavigate?: () => void
 }) {
   const { pathname } = useLocation()
   const childActive = hasActiveChild(pathname, item)
   const [open, setOpen] = useState(childActive)
   const isParent = item.children.length > 0
+  const expanded = expandAll || open
 
   useEffect(() => {
     if (childActive) {
@@ -68,7 +74,7 @@ function SidebarNavItem({
           type="button"
           title={item.name}
           onClick={() => setOpen((current) => !current)}
-          aria-expanded={open}
+          aria-expanded={expanded}
           className={cn(
             'grid h-9 w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent',
             collapsed ? 'grid-cols-1 justify-items-center px-0' : 'grid-cols-[1rem_minmax(0,1fr)_1rem]',
@@ -79,7 +85,7 @@ function SidebarNavItem({
           {!collapsed ? (
             <>
               <span className="min-w-0 truncate">{item.name}</span>
-              {open ? (
+              {expanded ? (
                 <ChevronUp className="size-4 shrink-0 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
               ) : (
                 <ChevronDown className="size-4 shrink-0 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
@@ -87,7 +93,7 @@ function SidebarNavItem({
             </>
           ) : null}
         </button>
-        {open && !collapsed ? (
+        {expanded && !collapsed ? (
           <div className="ml-4 min-w-0">
             {item.children.map((child, index) => {
               const isLast = index === item.children.length - 1
@@ -108,6 +114,7 @@ function SidebarNavItem({
                   <SidebarNavItem
                     item={child}
                     collapsed={false}
+                    expandAll={expandAll}
                     onNavigate={onNavigate}
                   />
                 </div>

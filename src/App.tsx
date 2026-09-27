@@ -15,6 +15,7 @@ import { HomePage } from '@/pages/home-page'
 import { LoginPage } from '@/pages/login-page'
 import { MotionForExecutionPage } from '@/pages/motion-for-execution-page'
 import { MyProfilePage } from '@/pages/my-profile-page'
+import { AddNoticeOfExecutionPage } from '@/pages/add-notice-of-execution-page'
 import { NoticeOfExecutionPage } from '@/pages/notice-of-execution-page'
 import { NoticeOfHearingMotionPage } from '@/pages/notice-of-hearing-motion-page'
 import { NoticeOfHearingPage } from '@/pages/notice-of-hearing-page'
@@ -69,6 +70,7 @@ function App() {
           <Route path="/motion-for-execution" element={<MotionForExecutionPage />} />
           <Route path="/notice-of-hearing-motion" element={<NoticeOfHearingMotionPage />} />
           <Route path="/notice-of-execution" element={<NoticeOfExecutionPage />} />
+          <Route path="/notice-of-execution/add" element={<AddNoticeOfExecutionPage />} />
           <Route path="/user-activity-log" element={<UserActivityLogPage />} />
           <Route path="/baseline-security" element={<BaselineSecurityPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />

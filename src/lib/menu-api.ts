@@ -74,6 +74,24 @@ function pathMatches(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`)
 }
 
+export function filterMenuTree(nodes: MenuNode[], query: string): MenuNode[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return nodes
+
+  function visit(node: MenuNode): MenuNode | null {
+    const nameMatch = node.name.toLowerCase().includes(q)
+    const matchedChildren = node.children
+      .map(visit)
+      .filter((child): child is MenuNode => child != null)
+
+    if (nameMatch) return node
+    if (matchedChildren.length > 0) return { ...node, children: matchedChildren }
+    return null
+  }
+
+  return nodes.map(visit).filter((node): node is MenuNode => node != null)
+}
+
 export function findMenuTrail(nodes: MenuNode[], pathname: string): MenuNode[] {
   function walk(items: MenuNode[], ancestors: MenuNode[]): MenuNode[] | null {
     for (const item of items) {

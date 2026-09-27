@@ -197,9 +197,16 @@ export function NoticeOfExecutionPdfDocument({ data }: { data: ExecutionPdfData 
         <Text style={styles.body}>
           NOW, THEREFORE, I, in behalf of the Lupong Tagapamayapa and by virtue of the powers vested in
           me and the Lupon by the Katarungang Pambarangay Law and Rules, I shall cause to be realized from
-          the goods and personal property of <Blank value={data.personalPropertyOf} width={24} /> the sum
-          of <Blank value={data.amount} width={22} /> [or the equivalent of the property obligated] in the
-          said amicable settlement [or adjudged in the said arbitration award], unless voluntary
+          the goods and personal property of <Blank value={data.personalPropertyOf} width={24} />
+          {data.amount.trim() ? (
+            <Text>
+              {' '}
+              the sum of <Blank value={data.amount} width={22} /> [or the equivalent of the property obligated]{' '}
+            </Text>
+          ) : (
+            <Text>, or the equivalent of the property obligated, </Text>
+          )}
+          in the said amicable settlement [or adjudged in the said arbitration award], unless voluntary
           compliance of said settlement or award shall have been made upon receipt hereof.
         </Text>
         <Text style={styles.dateLine}>

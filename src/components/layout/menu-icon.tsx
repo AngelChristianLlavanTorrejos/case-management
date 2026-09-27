@@ -15,6 +15,7 @@ import {
   Stamp,
   Tags,
   Users,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -37,6 +38,7 @@ const ICONS: Record<string, LucideIcon> = {
   tags: Tags,
   users: Users,
   user: Users,
+  wrench: Wrench,
 }
 
 function iconKey(name: string) {

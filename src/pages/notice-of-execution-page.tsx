@@ -1,9 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { FileDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
-import { AddNoticeOfExecutionDialog } from '@/components/execution/add-notice-of-execution-dialog'
 import { toast } from '@/hooks/use-toast.tsx'
 import { formatComplaintWhen } from '@/lib/complaints-api'
 import { placeholders } from '@/lib/form-fields'
@@ -13,7 +13,6 @@ import {
   type ExecutionListRow,
 } from '@/lib/notice-of-execution-api'
 import { downloadNoticeOfExecutionPdf } from '@/lib/notice-of-execution-pdf'
-import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
 
@@ -26,13 +25,11 @@ function TruncatedNames({ value }: { value: string }) {
 }
 
 export function NoticeOfExecutionPage() {
-  const queryClient = useQueryClient()
-  const actorUserId = useAuthStore((state) => state.session?.id)
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
-  const [addOpen, setAddOpen] = useState(false)
 
   const listQuery = useQuery({
     queryKey: ['notices-of-execution', search, sortKey, sortDir, page],
@@ -100,7 +97,7 @@ export function NoticeOfExecutionPage() {
         searchValue={search}
         onSearchChange={setSearch}
         addLabel="Add"
-        onAdd={() => setAddOpen(true)}
+        onAdd={() => navigate('/notice-of-execution/add')}
         columns={[
           { key: 'barangay_case_no', header: 'Barangay case no.', sortable: true, className: 'w-44' },
           {
@@ -150,16 +147,6 @@ export function NoticeOfExecutionPage() {
         total={total}
         onPageChange={setPage}
         actions={actions}
-      />
-      <AddNoticeOfExecutionDialog
-        open={addOpen}
-        actorUserId={actorUserId}
-        onClose={() => setAddOpen(false)}
-        onCreated={async () => {
-          await queryClient.invalidateQueries({ queryKey: ['notices-of-execution'] })
-          await queryClient.invalidateQueries({ queryKey: ['notice-of-execution-cases'] })
-          await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
-        }}
       />
     </>
   )

@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, User } from 'lucide-react'
-import { useState } from 'react'
+import { LogOut, Search, User, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { SidebarNav } from '@/components/layout/sidebar-nav'
+import { IconInput } from '@/components/ui/icon-input'
 import { logoutUser, getUserProfile } from '@/lib/auth-api'
-import { getActiveMenus } from '@/lib/menu-api'
+import { filterMenuTree, getActiveMenus } from '@/lib/menu-api'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUiStore } from '@/stores/ui-store'
@@ -17,11 +18,17 @@ export function AppSidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [menuQuery, setMenuQuery] = useState('')
 
   const menus = useQuery({
     queryKey: ['active-menus'],
     queryFn: getActiveMenus,
   })
+
+  const visibleMenus = useMemo(
+    () => filterMenuTree(menus.data ?? [], menuQuery),
+    [menus.data, menuQuery],
+  )
 
   const profile = useQuery({
     queryKey: ['user-profile', session?.id],
@@ -81,13 +88,44 @@ export function AppSidebar({ className }: { className?: string }) {
         </div>
       </div>
 
+      {!collapsed ? (
+        <div className="px-2 pt-3 pb-1">
+          <div className="relative">
+            <IconInput
+              icon={<Search />}
+              value={menuQuery}
+              onChange={(event) => setMenuQuery(event.target.value)}
+              placeholder="Search menu"
+              aria-label="Search menu"
+              className="h-8 bg-[#F7F7F8] pr-8"
+            />
+            {menuQuery ? (
+              <button
+                type="button"
+                className="absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[#666666] hover:bg-[#E8E8EA] hover:text-[#171717]"
+                onClick={() => setMenuQuery('')}
+                aria-label="Clear menu search"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <div className="scrollbar-hidden min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-3">
         {menus.isError ? (
           <p className="px-3 text-xs text-destructive">
             {menus.error instanceof Error ? menus.error.message : 'Unable to load menus.'}
           </p>
+        ) : visibleMenus.length === 0 && menuQuery.trim() ? (
+          <p className="px-3 text-xs text-[#666666]">No menus found.</p>
         ) : (
-          <SidebarNav items={menus.data ?? []} collapsed={collapsed} />
+          <SidebarNav
+            items={visibleMenus}
+            collapsed={collapsed}
+            expandAll={Boolean(menuQuery.trim())}
+          />
         )}
       </div>
 
