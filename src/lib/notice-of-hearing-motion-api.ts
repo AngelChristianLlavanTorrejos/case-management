@@ -10,6 +10,7 @@ export type NoticeMotionListRow = {
   appear_at: string
   filed_by: 'complainants' | 'respondents'
   issued_on: string
+  status: string | null
 }
 
 export type NoticeMotionRecord = {
@@ -72,7 +73,13 @@ export async function listNoticesOfHearingMotion(query: ListQuery) {
   if (error) throw rpcError(error.message)
 
   const parsed = parseJson<{ rows: NoticeMotionListRow[]; total: number }>(data)
-  return { rows: parsed?.rows ?? [], total: parsed?.total ?? 0 }
+  return {
+    rows: (parsed?.rows ?? []).map((row) => ({
+      ...row,
+      status: row.status ?? null,
+    })),
+    total: parsed?.total ?? 0,
+  }
 }
 
 export async function getNoticeOfHearingMotion(id: number): Promise<NoticeMotionRecord> {

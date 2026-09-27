@@ -30,6 +30,7 @@ export const placeholders = {
   search_cfa: 'e.g. 2026-TANZA-00001',
   search_motion: 'e.g. 2026-TANZA-00001',
   search_notice_motion: 'e.g. 2026-TANZA-00001',
+  search_execution: 'e.g. 2026-TANZA-00001',
   otp: 'Enter OTP',
 } as const
 

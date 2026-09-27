@@ -158,6 +158,7 @@ export function MotionForExecutionPage() {
         onIssued={async () => {
           await queryClient.invalidateQueries({ queryKey: ['motions-for-execution'] })
           await queryClient.invalidateQueries({ queryKey: ['notices-of-hearing-motion'] })
+          await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
         }}
       />
     </>

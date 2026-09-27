@@ -1,19 +1,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, FileDown } from 'lucide-react'
+import { FileDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
-import { AddAmicableSettlementDialog } from '@/components/settlement/add-amicable-settlement-dialog'
-import { useConfirm } from '@/hooks/use-confirm'
+import { AddNoticeOfExecutionDialog } from '@/components/execution/add-notice-of-execution-dialog'
 import { toast } from '@/hooks/use-toast.tsx'
-import {
-  listAmicableSettlements,
-  markAmicableSettlementSettled,
-  type AmicableSettlementListRow,
-} from '@/lib/amicable-settlement-api'
-import { downloadAmicableSettlementPdf } from '@/lib/amicable-settlement-pdf'
 import { formatComplaintWhen } from '@/lib/complaints-api'
 import { placeholders } from '@/lib/form-fields'
+import {
+  formatPartyObliged,
+  listNoticesOfExecution,
+  type ExecutionListRow,
+} from '@/lib/notice-of-execution-api'
+import { downloadNoticeOfExecutionPdf } from '@/lib/notice-of-execution-pdf'
 import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
@@ -26,18 +25,8 @@ function TruncatedNames({ value }: { value: string }) {
   )
 }
 
-function formatSettlementStatus(status: string | null) {
-  if (status === 'settled') return 'Settled'
-  if (status === 'repudiated') return 'Repudiated'
-  if (status === 'motion_for_execution') return 'Motion for Execution'
-  if (status === 'notice_of_hearing_motion') return 'Notice of Hearing (RE: Motion for Execution)'
-  if (status === 'notice_of_execution') return 'Notice of Execution'
-  return '—'
-}
-
-export function AmicableSettlementPage() {
+export function NoticeOfExecutionPage() {
   const queryClient = useQueryClient()
-  const confirm = useConfirm()
   const actorUserId = useAuthStore((state) => state.session?.id)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('created_at')
@@ -46,9 +35,9 @@ export function AmicableSettlementPage() {
   const [addOpen, setAddOpen] = useState(false)
 
   const listQuery = useQuery({
-    queryKey: ['amicable-settlements', search, sortKey, sortDir, page],
+    queryKey: ['notices-of-execution', search, sortKey, sortDir, page],
     queryFn: () =>
-      listAmicableSettlements({
+      listNoticesOfExecution({
         search,
         sortKey,
         sortDir,
@@ -63,7 +52,7 @@ export function AmicableSettlementPage() {
   useEffect(() => {
     if (listQuery.isError) {
       toast.error(
-        'Unable to load amicable settlements.',
+        'Unable to load notices of execution.',
         listQuery.error instanceof Error ? listQuery.error.message : undefined,
       )
     }
@@ -87,37 +76,12 @@ export function AmicableSettlementPage() {
     setSortDir(key === 'created_at' ? 'desc' : 'asc')
   }
 
-  async function handleSettled(row: AmicableSettlementListRow) {
-    const ok = await confirm({
-      title: 'Mark this settlement as settled?',
-      description: 'This will close the case. It can no longer be repudiated.',
-      confirmLabel: 'Settled',
-    })
-    if (!ok) return
-
-    try {
-      if (!actorUserId) throw new Error('You must be signed in.')
-      await markAmicableSettlementSettled(row.id, actorUserId)
-      await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
-      await queryClient.invalidateQueries({ queryKey: ['repudiation-cases'] })
-      await queryClient.invalidateQueries({ queryKey: ['motion-for-execution-cases'] })
-      await queryClient.invalidateQueries({ queryKey: ['notice-of-execution-cases'] })
-      await queryClient.invalidateQueries({ queryKey: ['notices-of-hearing-motion'] })
-      toast.success('Settlement marked as settled.')
-    } catch (error) {
-      toast.error(
-        'Unable to mark this settlement as settled.',
-        error instanceof Error ? error.message : undefined,
-      )
-    }
-  }
-
-  const actions: PageContentAction<AmicableSettlementListRow>[] = [
+  const actions: PageContentAction<ExecutionListRow>[] = [
     {
       label: 'Export PDF',
       icon: FileDown,
       onSelect: (row) => {
-        void downloadAmicableSettlementPdf(row.id).catch((error) => {
+        void downloadNoticeOfExecutionPdf(row.id).catch((error) => {
           toast.error(
             'Unable to export PDF.',
             error instanceof Error ? error.message : undefined,
@@ -125,22 +89,14 @@ export function AmicableSettlementPage() {
         })
       },
     },
-    {
-      label: 'Settled',
-      icon: Check,
-      hidden: (row) => row.status === 'settled' || row.status === 'repudiated' || row.is_settled,
-      onSelect: (row) => {
-        void handleSettled(row)
-      },
-    },
   ]
 
   return (
     <>
       <PageContent
-        title="Amicable Settlement"
-        description="Record settlements for cases that already have a notice and summon."
-        searchPlaceholder={placeholders.search_settlement}
+        title="Notice of Execution"
+        description="Issue a notice of execution after five days from the motion hearing if the settlement is still unpaid."
+        searchPlaceholder={placeholders.search_execution}
         searchValue={search}
         onSearchChange={setSearch}
         addLabel="Add"
@@ -162,11 +118,18 @@ export function AmicableSettlementPage() {
             render: (row) => <TruncatedNames value={row.respondents} />,
           },
           {
-            key: 'status',
-            header: 'Status',
+            key: 'party_obliged',
+            header: 'Party obliged',
             sortable: true,
-            className: 'w-48',
-            render: (row) => formatSettlementStatus(row.status),
+            className: 'w-36',
+            render: (row) => formatPartyObliged(row.party_obliged),
+          },
+          {
+            key: 'amount',
+            header: 'The sum of',
+            sortable: true,
+            className: 'max-w-44',
+            render: (row) => <TruncatedNames value={row.amount} />,
           },
           {
             key: 'created_at',
@@ -188,13 +151,14 @@ export function AmicableSettlementPage() {
         onPageChange={setPage}
         actions={actions}
       />
-      <AddAmicableSettlementDialog
+      <AddNoticeOfExecutionDialog
         open={addOpen}
         actorUserId={actorUserId}
         onClose={() => setAddOpen(false)}
         onCreated={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['notices-of-execution'] })
+          await queryClient.invalidateQueries({ queryKey: ['notice-of-execution-cases'] })
           await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
-          await queryClient.invalidateQueries({ queryKey: ['amicable-settlement-cases'] })
         }}
       />
     </>
