@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { Field } from '@/components/auth/field'
+import { IssueNoticeSummonDialog } from '@/components/complaints/issue-notice-summon-dialog'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +26,15 @@ import { complaintFormSchema, type ComplaintFormValues } from '@/schemas/complai
 import { useAuthStore } from '@/stores/auth-store'
 
 type RecordMode = 'add' | 'edit' | 'view'
+
+function EnhanceButton({ hasContent }: { hasContent: boolean }) {
+  return (
+    <Button type="button" variant="outline" size="sm" className="shrink-0" disabled={!hasContent}>
+      <Sparkles />
+      AI Enhance
+    </Button>
+  )
+}
 
 function NameList({
   label,
@@ -181,6 +191,7 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
   const { id } = useParams()
   const actorUserId = useAuthStore((state) => state.session?.id)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [issueOpen, setIssueOpen] = useState(false)
   const recordId = mode === 'add' ? null : Number(id)
   const readOnly = mode === 'view'
   const copy = PAGE_COPY[mode]
@@ -224,6 +235,8 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
   const complainants = form.watch('complainants')
   const respondents = form.watch('respondents')
   const complaintTypeId = form.watch('complaint_type_id')
+  const manner = form.watch('manner')
+  const relief = form.watch('relief')
 
   async function onSubmit(values: ComplaintFormValues) {
     if (readOnly) return
@@ -340,6 +353,18 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
       <PageHeader title={copy.title} description={copy.description} />
 
       <form className="mt-5 grid max-w-3xl gap-6" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+        {mode !== 'add' ? (
+          <Field label="Barangay case no." htmlFor="barangay_case_no">
+            <Input
+              id="barangay_case_no"
+              className="h-10 bg-white"
+              value={record?.barangay_case_no || '—'}
+              disabled
+              readOnly
+            />
+          </Field>
+        ) : null}
+
         <Field
           label="Complaint type"
           htmlFor="complaint_type_id"
@@ -403,11 +428,13 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
           htmlFor="manner"
           required
           error={form.formState.errors.manner?.message}
+          action={readOnly ? undefined : <EnhanceButton hasContent={manner.trim().length > 0} />}
         >
           <Textarea
             id="manner"
             className="bg-white"
             disabled={readOnly}
+            placeholder="e.g. On 15 September 2026 at Blk 12 Lot 5, M. Naval St., Tanza 1, the respondent publicly insulted me and refused to return money I lent, causing me shame and loss."
             aria-invalid={Boolean(form.formState.errors.manner)}
             {...form.register('manner')}
           />
@@ -418,11 +445,13 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
           htmlFor="relief"
           required
           error={form.formState.errors.relief?.message}
+          action={readOnly ? undefined : <EnhanceButton hasContent={relief.trim().length > 0} />}
         >
           <Textarea
             id="relief"
             className="bg-white"
             disabled={readOnly}
+            placeholder="e.g. That the respondent return the money and issue a written apology."
             aria-invalid={Boolean(form.formState.errors.relief)}
             {...form.register('relief')}
           />
@@ -439,6 +468,16 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
               Received and filed
             </Button>
           ) : null}
+          {mode !== 'add' && record && record.is_received_and_filed && !record.is_notice_and_summon_issued ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => setIssueOpen(true)}
+            >
+              Notice of Hearing and Summon
+            </Button>
+          ) : null}
           {readOnly ? null : (
             <Button type="submit" className="cursor-pointer" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? 'Saving…' : mode === 'edit' ? 'Save' : 'Submit'}
@@ -446,6 +485,17 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
           )}
         </div>
       </form>
+      <IssueNoticeSummonDialog
+        complaintId={issueOpen ? recordId : null}
+        actorUserId={actorUserId}
+        onClose={() => setIssueOpen(false)}
+        onIssued={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['complaints'] })
+          await queryClient.invalidateQueries({ queryKey: ['complaint'] })
+          await queryClient.invalidateQueries({ queryKey: ['notices-of-hearing'] })
+          await queryClient.invalidateQueries({ queryKey: ['summons'] })
+        }}
+      />
     </div>
   )
 }

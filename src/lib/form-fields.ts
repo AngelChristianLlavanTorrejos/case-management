@@ -23,6 +23,13 @@ export const placeholders = {
   search_member: 'e.g. Juan Dela Cruz',
   search_activity: 'e.g. Juan Dela Cruz',
   search_complaint: 'e.g. Property Dispute',
+  search_notice: 'e.g. 2026-TANZA-00001',
+  search_summon: 'e.g. 2026-TANZA-00001',
+  search_settlement: 'e.g. 2026-TANZA-00001',
+  search_repudiation: 'e.g. 2026-TANZA-00001',
+  search_cfa: 'e.g. 2026-TANZA-00001',
+  search_motion: 'e.g. 2026-TANZA-00001',
+  search_notice_motion: 'e.g. 2026-TANZA-00001',
   otp: 'Enter OTP',
 } as const
 

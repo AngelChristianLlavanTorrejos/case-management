@@ -416,3 +416,6 @@ enabled = true
 
 [functions.registration-otp]
 verify_jwt = false
+
+[functions.complaint-notify]
+verify_jwt = false

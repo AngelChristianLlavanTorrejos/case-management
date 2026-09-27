@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye, FileCheck, Pencil, Trash2 } from 'lucide-react'
+import { Eye, FileCheck, FileText, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { IssueNoticeSummonDialog } from '@/components/complaints/issue-notice-summon-dialog'
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import {
   deleteComplaint,
   formatComplaintWhen,
+  formatNoticeDueCountdown,
   listComplaints,
   markComplaintReceivedAndFiled,
   type ComplaintListRow,
@@ -26,6 +28,18 @@ function TruncatedNames({ value }: { value: string }) {
   )
 }
 
+function NoticeDueTag({ row, now }: { row: ComplaintListRow; now: number }) {
+  const label = formatNoticeDueCountdown(
+    row.received_and_filed_at,
+    now,
+    row.notice_and_summon_issued_at,
+    row.is_notice_and_summon_issued,
+  )
+  if (label === 'On time') return <span className="text-primary">On time</span>
+  if (label === 'Overdue') return <span className="text-destructive">Overdue</span>
+  return label
+}
+
 export function ComplainantsFormPage() {
   const navigate = useNavigate()
   const confirm = useConfirm()
@@ -35,6 +49,8 @@ export function ComplainantsFormPage() {
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
+  const [now, setNow] = useState(() => Date.now())
+  const [issueId, setIssueId] = useState<number | null>(null)
 
   const listQuery = useQuery({
     queryKey: ['complaints', search, sortKey, sortDir, page],
@@ -59,6 +75,11 @@ export function ComplainantsFormPage() {
       )
     }
   }, [listQuery.error, listQuery.isError])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     setPage(1)
@@ -140,6 +161,12 @@ export function ComplainantsFormPage() {
       hidden: (row) => row.is_received_and_filed,
     },
     {
+      label: 'Notice of Hearing and Summon',
+      icon: FileText,
+      onSelect: (row) => setIssueId(row.id),
+      hidden: (row) => !row.is_received_and_filed || row.is_notice_and_summon_issued,
+    },
+    {
       label: 'Delete',
       icon: Trash2,
       onSelect: (row) => void handleDelete(row),
@@ -148,6 +175,7 @@ export function ComplainantsFormPage() {
   ]
 
   return (
+    <>
     <PageContent
       title="Complainant's Form"
       description="Review and manage filed complaints."
@@ -186,6 +214,13 @@ export function ComplainantsFormPage() {
           className: 'w-40',
           render: (row) => (row.is_received_and_filed ? 'Yes' : 'No'),
         },
+        {
+          key: 'received_and_filed_at',
+          header: 'Notice due',
+          sortable: true,
+          className: 'w-36',
+          render: (row) => <NoticeDueTag row={row} now={now} />,
+        },
       ]}
       rows={rows}
       isLoading={listQuery.isLoading}
@@ -199,5 +234,17 @@ export function ComplainantsFormPage() {
       onPageChange={setPage}
       actions={actions}
     />
+      <IssueNoticeSummonDialog
+        complaintId={issueId}
+        actorUserId={actorUserId}
+        onClose={() => setIssueId(null)}
+        onIssued={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['complaints'] })
+          await queryClient.invalidateQueries({ queryKey: ['complaint'] })
+          await queryClient.invalidateQueries({ queryKey: ['notices-of-hearing'] })
+          await queryClient.invalidateQueries({ queryKey: ['summons'] })
+        }}
+      />
+    </>
   )
 }

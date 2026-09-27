@@ -1,3 +1,4 @@
+import { notifyComplaintSms } from '@/lib/complaint-sms'
 import { supabase } from '@/lib/supabase'
 
 export type CreateComplaintPayload = {
@@ -15,6 +16,9 @@ export type ComplaintListRow = {
   complainants: string
   respondents: string
   is_received_and_filed: boolean
+  received_and_filed_at: string | null
+  is_notice_and_summon_issued: boolean
+  notice_and_summon_issued_at: string | null
 }
 
 export type ComplaintListQuery = {
@@ -38,6 +42,9 @@ export type ComplaintRecord = {
   relief: string
   created_at: string
   is_received_and_filed: boolean
+  received_and_filed_at: string | null
+  barangay_case_no: string | null
+  is_notice_and_summon_issued: boolean
   complainants: string[]
   respondents: string[]
 }
@@ -59,6 +66,34 @@ export function formatComplaintWhen(value: string) {
   })
 }
 
+const NOTICE_DUE_MS = 3 * 24 * 60 * 60 * 1000
+
+export function formatNoticeDueCountdown(
+  receivedAt: string | null,
+  now = Date.now(),
+  issuedAt: string | null = null,
+  isIssued = false,
+) {
+  if (!receivedAt) return '—'
+  const start = new Date(receivedAt).getTime()
+  if (Number.isNaN(start)) return '—'
+
+  const deadline = start + NOTICE_DUE_MS
+  if (issuedAt || isIssued) {
+    const issued = issuedAt ? new Date(issuedAt).getTime() : now
+    if (!Number.isNaN(issued)) return issued <= deadline ? 'On time' : 'Overdue'
+  }
+
+  const remaining = deadline - now
+  if (remaining <= 0) return 'Overdue'
+
+  const totalMinutes = Math.floor(remaining / 60_000)
+  const days = Math.floor(totalMinutes / (24 * 60))
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60)
+  const minutes = totalMinutes % 60
+  return `${days}d ${hours}h ${minutes}m`
+}
+
 export async function listComplaints(query: ComplaintListQuery): Promise<ComplaintListResult> {
   const { data, error } = await supabase.rpc('list_complaints', {
     p_search: query.search,
@@ -72,7 +107,13 @@ export async function listComplaints(query: ComplaintListQuery): Promise<Complai
 
   const parsed = parseJson<ComplaintListResult>(data)
   return {
-    rows: parsed?.rows ?? [],
+    rows: (parsed?.rows ?? []).map((row) => ({
+      ...row,
+      is_received_and_filed: Boolean(row.is_received_and_filed),
+      received_and_filed_at: row.received_and_filed_at ?? null,
+      is_notice_and_summon_issued: Boolean(row.is_notice_and_summon_issued),
+      notice_and_summon_issued_at: row.notice_and_summon_issued_at ?? null,
+    })),
     total: parsed?.total ?? 0,
   }
 }
@@ -87,6 +128,9 @@ export async function getComplaint(id: number): Promise<ComplaintRecord> {
   return {
     ...parsed,
     is_received_and_filed: Boolean(parsed.is_received_and_filed),
+    received_and_filed_at: parsed.received_and_filed_at ?? null,
+    barangay_case_no: parsed.barangay_case_no ?? null,
+    is_notice_and_summon_issued: Boolean(parsed.is_notice_and_summon_issued),
     complainants: parsed.complainants ?? [],
     respondents: parsed.respondents ?? [],
   }
@@ -136,6 +180,7 @@ export async function markComplaintReceivedAndFiled(id: number, actorUserId: num
     p_actor_user_id: actorUserId,
   })
   if (error) throw rpcError(error.message)
+  await notifyComplaintSms('received_and_filed', id)
 }
 
 export async function deleteComplaint(id: number, actorUserId: number): Promise<void> {
