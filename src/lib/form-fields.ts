@@ -31,6 +31,8 @@ export const placeholders = {
   search_motion: 'e.g. 2026-TANZA-00001',
   search_notice_motion: 'e.g. 2026-TANZA-00001',
   search_execution: 'e.g. 2026-TANZA-00001',
+  search_lupon: 'e.g. Lupon Member',
+  search_technical_support: 'e.g. superadmin',
   otp: 'Enter OTP',
 } as const
 

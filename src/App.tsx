@@ -12,6 +12,8 @@ import { ComplainantRecordPage } from '@/pages/complainant-record-page'
 import { ComplainantsFormPage } from '@/pages/complainants-form-page'
 import { CommunityMembersPage } from '@/pages/community-members-page'
 import { HomePage } from '@/pages/home-page'
+import { AddLuponMemberPage } from '@/pages/add-lupon-member-page'
+import { LuponMembersPage } from '@/pages/lupon-members-page'
 import { LoginPage } from '@/pages/login-page'
 import { MotionForExecutionPage } from '@/pages/motion-for-execution-page'
 import { MyProfilePage } from '@/pages/my-profile-page'
@@ -26,6 +28,9 @@ import { RepudiationPage } from '@/pages/repudiation-page'
 import { SummonForRespondentPage } from '@/pages/summon-for-respondent-page'
 import { SummonRecordPage } from '@/pages/summon-record-page'
 import { SuffixPage } from '@/pages/suffix-page'
+import { StaffAccountRecordPage } from '@/pages/staff-account-record-page'
+import { AddTechnicalSupportPage } from '@/pages/add-technical-support-page'
+import { TechnicalSupportPage } from '@/pages/technical-support-page'
 import { UserActivityLogPage } from '@/pages/user-activity-log-page'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -55,7 +60,17 @@ function App() {
           }
         >
           <Route path="/" element={<HomePage />} />
+          <Route path="/lupon-members" element={<LuponMembersPage />} />
+          <Route path="/lupon-members/add" element={<AddLuponMemberPage />} />
+          <Route path="/lupon-members/:id/view" element={<StaffAccountRecordPage kind="lupon" mode="view" />} />
+          <Route path="/lupon-members/:id/edit" element={<StaffAccountRecordPage kind="lupon" mode="edit" />} />
+          <Route path="/technical-support" element={<TechnicalSupportPage />} />
+          <Route path="/technical-support/add" element={<AddTechnicalSupportPage />} />
+          <Route path="/technical-support/:id/view" element={<StaffAccountRecordPage kind="technical" mode="view" />} />
+          <Route path="/technical-support/:id/edit" element={<StaffAccountRecordPage kind="technical" mode="edit" />} />
           <Route path="/community-members" element={<CommunityMembersPage />} />
+          <Route path="/community-members/:id/view" element={<StaffAccountRecordPage kind="community" mode="view" />} />
+          <Route path="/community-members/:id/edit" element={<StaffAccountRecordPage kind="community" mode="edit" />} />
           <Route path="/complainants-form" element={<ComplainantsFormPage />} />
           <Route path="/complainants-form/add" element={<ComplainantRecordPage mode="add" />} />
           <Route path="/complainants-form/:id/edit" element={<ComplainantRecordPage mode="edit" />} />

@@ -92,6 +92,75 @@ export const communityMemberSchema = z.object({
 
 export type CommunityMemberValues = z.infer<typeof communityMemberSchema>
 
+export const luponMemberEditSchema = communityMemberSchema.extend({
+  position_id: requiredText('Position'),
+})
+
+export type LuponMemberEditValues = z.infer<typeof luponMemberEditSchema>
+
+export const luponMemberFieldsSchema = registerFieldsSchema.extend({
+  position_id: requiredText('Position'),
+})
+
+export const luponMemberSchema = luponMemberFieldsSchema.refine((data) => data.password === data.confirm_password, {
+  message: 'Passwords do not match',
+  path: ['confirm_password'],
+})
+
+export type LuponMemberValues = z.infer<typeof luponMemberSchema>
+
+export function createLuponMemberResolver(policy: SecuritySettings | null): Resolver<LuponMemberValues> {
+  return async (values, context, options) => {
+    const names = options.names as (keyof LuponMemberValues)[] | undefined
+
+    const applyPolicy = (
+      result: Awaited<ReturnType<Resolver<LuponMemberValues>>>,
+    ): Awaited<ReturnType<Resolver<LuponMemberValues>>> => {
+      const message = checkPassword(values.password, values.username, policy)
+      if (!message) return result
+      if (names?.length && !names.includes('password')) return result
+      return {
+        values: {},
+        errors: {
+          ...result.errors,
+          password: {
+            type: 'custom',
+            message,
+          },
+        },
+      }
+    }
+
+    if (!names?.length) {
+      const result = await zodResolver(luponMemberSchema)(values, context, options)
+      return applyPolicy(result)
+    }
+
+    const pick = Object.fromEntries(names.map((name) => [name, true]))
+    const checkPasswords = names.includes('password') || names.includes('confirm_password')
+    const schema = checkPasswords
+      ? luponMemberFieldsSchema
+          .pick({
+            password: true,
+            confirm_password: true,
+            username: true,
+            ...pick,
+          } as { password: true; confirm_password: true; username: true })
+          .refine(
+            (data) => !data.password || !data.confirm_password || data.password === data.confirm_password,
+            { message: 'Passwords do not match', path: ['confirm_password'] },
+          )
+      : luponMemberFieldsSchema.pick(pick as Record<(typeof names)[number], true>)
+
+    const result = await (zodResolver(schema) as unknown as Resolver<LuponMemberValues>)(
+      values,
+      context,
+      options,
+    )
+    return applyPolicy(result)
+  }
+}
+
 export const registerStepFields = [
   ['first_name', 'middle_name', 'last_name', 'suffix_id', 'sex_id', 'civil_status_id', 'birthdate'],
   [
@@ -114,6 +183,30 @@ export const registerStepFields = [
   ],
   ['mobile_number', 'telephone_number', 'email'],
   ['username', 'password', 'confirm_password'],
+] as const
+
+export const luponMemberStepFields = [
+  registerStepFields[0],
+  registerStepFields[1],
+  registerStepFields[2],
+  registerStepFields[3],
+  ['username', 'password', 'confirm_password', 'position_id'],
+] as const
+
+export const staffAccountEditStepFields = [
+  registerStepFields[0],
+  registerStepFields[1],
+  registerStepFields[2],
+  registerStepFields[3],
+  [],
+] as const
+
+export const luponMemberEditStepFields = [
+  registerStepFields[0],
+  registerStepFields[1],
+  registerStepFields[2],
+  registerStepFields[3],
+  ['position_id'],
 ] as const
 
 export function parseRegisterStep(step: number, values: RegisterValues) {
