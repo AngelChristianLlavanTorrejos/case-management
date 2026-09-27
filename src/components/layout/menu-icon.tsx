@@ -1,4 +1,5 @@
 import {
+  BadgeCheck,
   Circle,
   CircleUser,
   FileText,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react'
 
 const ICONS: Record<string, LucideIcon> = {
+  badgecheck: BadgeCheck,
   circle: Circle,
   circleuser: CircleUser,
   filetext: FileText,

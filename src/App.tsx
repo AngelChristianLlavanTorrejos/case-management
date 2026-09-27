@@ -21,6 +21,7 @@ import { NoticeOfHearingMotionPage } from '@/pages/notice-of-hearing-motion-page
 import { NoticeOfHearingPage } from '@/pages/notice-of-hearing-page'
 import { AddRepudiationPage } from '@/pages/add-repudiation-page'
 import { RegisterPage } from '@/pages/register-page'
+import { PositionsPage } from '@/pages/positions-page'
 import { RepudiationPage } from '@/pages/repudiation-page'
 import { SummonForRespondentPage } from '@/pages/summon-for-respondent-page'
 import { SummonRecordPage } from '@/pages/summon-record-page'
@@ -78,6 +79,7 @@ function App() {
           <Route path="/masterfile/suffixes" element={<SuffixPage />} />
           <Route path="/masterfile/civil-status" element={<CivilStatusPage />} />
           <Route path="/masterfile/complaint-types" element={<ComplaintTypesPage />} />
+          <Route path="/masterfile/positions" element={<PositionsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
