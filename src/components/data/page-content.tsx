@@ -229,7 +229,7 @@ export function PageContent<T>({
       </div>
 
       <div className="mt-4">
-        <Table>
+        <Table containerClassName="max-h-[calc(100svh-16rem)]">
           <TableHeader>
             <TableRow className="hover:bg-[#FAFAFA]">
               {columns.map((column) => (
@@ -256,7 +256,9 @@ export function PageContent<T>({
                   )}
                 </TableHead>
               ))}
-              <TableHead className="w-16 text-right">Actions</TableHead>
+              <TableHead className="sticky right-0 z-30 w-16 border-l border-[#E5E5E6] bg-[#FAFAFA] text-right">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -274,13 +276,13 @@ export function PageContent<T>({
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={getRowId(row)}>
+                <TableRow key={getRowId(row)} className="group">
                   {columns.map((column) => (
                     <TableCell key={column.key} className={column.className}>
                       {column.render ? column.render(row) : String(getCellValue(row, column.key) ?? '')}
                     </TableCell>
                   ))}
-                  <TableCell className="text-right">
+                  <TableCell className="sticky right-0 z-20 border-l border-[#E5E5E6] bg-white text-right group-hover:bg-[#F5F5F5]">
                     {actions ? (
                       <CustomRowActions row={row} actions={actions} />
                     ) : onEdit && onDelete ? (

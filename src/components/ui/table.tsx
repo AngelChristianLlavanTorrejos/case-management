@@ -1,12 +1,21 @@
 import * as React from 'react'
 import { cn } from 'cn'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+function Table({
+  className,
+  containerClassName,
+  ...props
+}: React.ComponentProps<'table'> & { containerClassName?: string }) {
   return (
-    <div className="relative w-full overflow-x-auto rounded-lg border border-[#E5E5E6] bg-white">
+    <div
+      className={cn(
+        'relative w-full overflow-auto rounded-lg border border-[#E5E5E6] bg-white',
+        containerClassName,
+      )}
+    >
       <table
         data-slot="table"
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('w-max min-w-full caption-bottom text-sm', className)}
         {...props}
       />
     </div>
@@ -42,7 +51,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot="table-head"
       className={cn(
-        'h-10 px-3 text-left align-middle text-xs font-medium tracking-wide text-[#666666] whitespace-nowrap',
+        'sticky top-0 z-10 h-10 bg-[#FAFAFA] px-3 text-left align-middle text-xs font-medium tracking-wide text-[#666666] whitespace-nowrap',
         className,
       )}
       {...props}
@@ -54,7 +63,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
   return (
     <td
       data-slot="table-cell"
-      className={cn('px-3 py-2.5 align-middle text-sm text-[#171717]', className)}
+        className={cn('whitespace-nowrap px-3 py-2.5 align-middle text-sm text-[#171717]', className)}
       {...props}
     />
   )

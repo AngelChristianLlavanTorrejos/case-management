@@ -81,7 +81,7 @@ export function AppSidebar({ className }: { className?: string }) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto py-3">
+      <div className="scrollbar-hidden min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-3">
         {menus.isError ? (
           <p className="px-3 text-xs text-destructive">
             {menus.error instanceof Error ? menus.error.message : 'Unable to load menus.'}

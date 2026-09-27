@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
@@ -28,7 +28,7 @@ export function SidebarNav({
   onNavigate?: () => void
 }) {
   return (
-    <nav className="grid gap-0.5 px-2" aria-label="Main">
+    <nav className="grid gap-0.5 pl-2 pr-4" aria-label="Main">
       {items.map((item) => (
         <SidebarNavItem
           key={item.id}
@@ -61,26 +61,29 @@ function SidebarNavItem({
     }
   }, [childActive])
 
-  if (isParent && !item.path) {
+  if (isParent) {
     return (
       <div>
         <button
           type="button"
-          title={collapsed ? item.name : undefined}
+          title={item.name}
           onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
           className={cn(
-            'flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent',
-            collapsed && 'justify-center px-0',
+            'grid h-9 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent',
+            collapsed ? 'grid-cols-1 justify-items-center px-0' : 'grid-cols-[1rem_minmax(0,1fr)_1rem]',
             childActive && 'text-[#171717]',
           )}
         >
           <MenuIcon name={item.icon} className="size-4 shrink-0" />
           {!collapsed ? (
             <>
-              <span className="min-w-0 flex-1 truncate">{item.name}</span>
-              <ChevronDown
-                className={cn('size-3.5 shrink-0 text-[#666666] transition-transform', open && 'rotate-180')}
-              />
+              <span className="min-w-0 truncate">{item.name}</span>
+              {open ? (
+                <ChevronUp className="size-4 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 justify-self-end text-[#666666]" strokeWidth={2} aria-hidden />
+              )}
             </>
           ) : null}
         </button>
@@ -124,11 +127,11 @@ function SidebarNavItem({
     <NavLink
       to={item.path}
       end={item.path === '/'}
-      title={collapsed ? item.name : undefined}
+      title={item.name}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm hover:bg-sidebar-accent',
+          'flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm hover:bg-sidebar-accent',
           collapsed && 'justify-center px-0',
           isActive
             ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
@@ -137,7 +140,7 @@ function SidebarNavItem({
       }
     >
       <MenuIcon name={item.icon} className="size-4 shrink-0" />
-      {!collapsed ? <span className="truncate">{item.name}</span> : null}
+      {!collapsed ? <span className="min-w-0 flex-1 truncate">{item.name}</span> : null}
     </NavLink>
   )
 }
