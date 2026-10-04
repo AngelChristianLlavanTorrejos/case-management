@@ -96,13 +96,14 @@ export async function issueNoticeAndSummon(
   await notifyComplaintSms('notice_of_hearing', complaintId)
 }
 
-export async function listNoticesOfHearing(query: ListQuery) {
+export async function listNoticesOfHearing(query: ListQuery & { actorUserId: number }) {
   const { data, error } = await supabase.rpc('list_notices_of_hearing', {
     p_search: query.search,
     p_sort_key: query.sortKey,
     p_sort_dir: query.sortDir,
     p_page: query.page,
     p_page_size: query.pageSize,
+    p_actor_user_id: query.actorUserId,
   })
   if (error) throw rpcError(error.message)
 
@@ -110,8 +111,11 @@ export async function listNoticesOfHearing(query: ListQuery) {
   return { rows: parsed?.rows ?? [], total: parsed?.total ?? 0 }
 }
 
-export async function getNoticeOfHearing(id: number): Promise<HearingRecord> {
-  const { data, error } = await supabase.rpc('get_notice_of_hearing', { p_id: id })
+export async function getNoticeOfHearing(id: number, actorUserId: number): Promise<HearingRecord> {
+  const { data, error } = await supabase.rpc('get_notice_of_hearing', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 
   const parsed = parseJson<HearingRecord>(data)

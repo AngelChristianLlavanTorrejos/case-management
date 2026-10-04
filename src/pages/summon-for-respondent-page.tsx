@@ -9,6 +9,7 @@ import { formatComplaintWhen } from '@/lib/complaints-api'
 import { placeholders } from '@/lib/form-fields'
 import { listSummons, type SummonListRow } from '@/lib/hearing-summon-api'
 import { downloadSummonPdf } from '@/lib/summon-pdf'
+import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
 
@@ -22,6 +23,7 @@ function TruncatedNames({ value }: { value: string }) {
 
 export function SummonForRespondentPage() {
   const navigate = useNavigate()
+  const actorUserId = useAuthStore((state) => state.session?.id)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('issued_on')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -76,7 +78,8 @@ export function SummonForRespondentPage() {
       label: 'Export PDF',
       icon: FileDown,
       onSelect: (row) => {
-        void downloadSummonPdf(row.id).catch((error) => {
+        if (!actorUserId) return
+        void downloadSummonPdf(row.id, actorUserId).catch((error) => {
           toast.error(
             'Unable to export PDF.',
             error instanceof Error ? error.message : undefined,

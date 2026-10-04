@@ -7,9 +7,37 @@ import { SidebarNav } from '@/components/layout/sidebar-nav'
 import { IconInput } from '@/components/ui/icon-input'
 import { logoutUser, getUserProfile } from '@/lib/auth-api'
 import { filterMenuTree, getActiveMenus } from '@/lib/menu-api'
+import { canAccessDashboard, isSuperAdmin } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUiStore } from '@/stores/ui-store'
+import type { MenuNode } from '@/types/menu'
+
+function menusForRole(nodes: MenuNode[], roleName: string | null | undefined): MenuNode[] {
+  return nodes.flatMap((item) => {
+    if (!canAccessDashboard(roleName) && (item.name === 'Dashboard' || item.path === '/')) return []
+    if (!isSuperAdmin(roleName) && isSuperAdminModule(item)) return []
+    if (!canAccessDashboard(roleName) && item.path === '/summon-for-the-respondent') return []
+    return [{ ...item, children: menusForRole(item.children, roleName) }]
+  })
+}
+
+function isSuperAdminModule(item: MenuNode) {
+  const path = item.path ?? ''
+  return (
+    item.name === 'Masterfile' ||
+    path.startsWith('/masterfile') ||
+    item.name === 'Community Members' ||
+    path.startsWith('/community-members') ||
+    item.name === 'Lupon Members' ||
+    path.startsWith('/lupon-members') ||
+    item.name === 'Technical Support' ||
+    path.startsWith('/technical-support') ||
+    item.name === 'Utilities' ||
+    path === '/user-activity-log' ||
+    path === '/baseline-security'
+  )
+}
 
 export function AppSidebar({ className }: { className?: string }) {
   const session = useAuthStore((state) => state.session)
@@ -25,11 +53,6 @@ export function AppSidebar({ className }: { className?: string }) {
     queryFn: getActiveMenus,
   })
 
-  const visibleMenus = useMemo(
-    () => filterMenuTree(menus.data ?? [], menuQuery),
-    [menus.data, menuQuery],
-  )
-
   const profile = useQuery({
     queryKey: ['user-profile', session?.id],
     queryFn: () => getUserProfile(session!.id),
@@ -38,6 +61,11 @@ export function AppSidebar({ className }: { className?: string }) {
 
   const displayName = profile.data?.displayName ?? session?.displayName ?? session?.username
   const roleName = profile.data?.roleName ?? session?.roleName
+
+  const visibleMenus = useMemo(
+    () => filterMenuTree(menusForRole(menus.data ?? [], roleName), menuQuery),
+    [menus.data, menuQuery, roleName],
+  )
 
   async function handleLogout() {
     if (isLoggingOut) return

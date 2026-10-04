@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Eye } from 'lucide-react'
+import { Check, Eye, FileDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
@@ -22,6 +22,8 @@ import {
   listNoticesOfHearing,
   type HearingListRow,
 } from '@/lib/hearing-summon-api'
+import { downloadNoticeOfHearingPdf } from '@/lib/notice-of-hearing-pdf'
+import { isUserRole } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
@@ -47,6 +49,7 @@ export function NoticeOfHearingPage() {
   const confirm = useConfirm()
   const queryClient = useQueryClient()
   const actorUserId = useAuthStore((state) => state.session?.id)
+  const isUser = isUserRole(useAuthStore((state) => state.session?.roleName))
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('issued_on')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -54,15 +57,17 @@ export function NoticeOfHearingPage() {
   const [viewId, setViewId] = useState<number | null>(null)
 
   const listQuery = useQuery({
-    queryKey: ['notices-of-hearing', search, sortKey, sortDir, page],
+    queryKey: ['notices-of-hearing', actorUserId, search, sortKey, sortDir, page],
     queryFn: () =>
       listNoticesOfHearing({
+        actorUserId: actorUserId as number,
         search,
         sortKey,
         sortDir,
         page,
         pageSize: PAGE_SIZE,
       }),
+    enabled: Boolean(actorUserId),
   })
 
   const rows = listQuery.data?.rows ?? []
@@ -123,7 +128,20 @@ export function NoticeOfHearingPage() {
       label: 'Acknowledge',
       icon: Check,
       onSelect: (row) => void handleAcknowledge(row),
-      hidden: (row) => Boolean(row.acknowledged_on),
+      hidden: (row) => !isUser || Boolean(row.acknowledged_on),
+    },
+    {
+      label: 'Export PDF',
+      icon: FileDown,
+      onSelect: (row) => {
+        if (!actorUserId) return
+        void downloadNoticeOfHearingPdf(row.id, actorUserId).catch((error) => {
+          toast.error(
+            'Unable to export PDF.',
+            error instanceof Error ? error.message : undefined,
+          )
+        })
+      },
     },
   ]
 
@@ -190,10 +208,11 @@ function NoticeViewDialog({
   noticeId: number | null
   onClose: () => void
 }) {
+  const actorUserId = useAuthStore((state) => state.session?.id)
   const query = useQuery({
-    queryKey: ['notice-of-hearing', noticeId],
-    queryFn: () => getNoticeOfHearing(noticeId as number),
-    enabled: noticeId !== null,
+    queryKey: ['notice-of-hearing', noticeId, actorUserId],
+    queryFn: () => getNoticeOfHearing(noticeId as number, actorUserId as number),
+    enabled: noticeId !== null && Boolean(actorUserId),
   })
   const notice = query.data
 

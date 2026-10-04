@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { EnhanceButton } from '@/components/ai/enhance-button'
 import { Field } from '@/components/auth/field'
 import { IssueNoticeSummonDialog } from '@/components/complaints/issue-notice-summon-dialog'
 import { PageHeader } from '@/components/layout/page-header'
@@ -22,19 +23,11 @@ import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import { createComplaint, getComplaint, markComplaintReceivedAndFiled, updateComplaint } from '@/lib/complaints-api'
 import { listLookupOptions } from '@/lib/lookup-api'
+import { isUserRole } from '@/lib/roles'
 import { complaintFormSchema, type ComplaintFormValues } from '@/schemas/complaint'
 import { useAuthStore } from '@/stores/auth-store'
 
 type RecordMode = 'add' | 'edit' | 'view'
-
-function EnhanceButton({ hasContent }: { hasContent: boolean }) {
-  return (
-    <Button type="button" variant="outline" size="sm" className="shrink-0" disabled={!hasContent}>
-      <Sparkles />
-      AI Enhance
-    </Button>
-  )
-}
 
 function NameList({
   label,
@@ -190,11 +183,10 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
   const queryClient = useQueryClient()
   const { id } = useParams()
   const actorUserId = useAuthStore((state) => state.session?.id)
+  const isUser = isUserRole(useAuthStore((state) => state.session?.roleName))
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [issueOpen, setIssueOpen] = useState(false)
   const recordId = mode === 'add' ? null : Number(id)
-  const readOnly = mode === 'view'
-  const copy = PAGE_COPY[mode]
 
   const complaintTypes = useQuery({
     queryKey: ['lookups', 'complaint_type', 'options'],
@@ -202,13 +194,16 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
   })
 
   const recordQuery = useQuery({
-    queryKey: ['complaint', recordId],
-    queryFn: () => getComplaint(recordId as number),
-    enabled: recordId !== null && Number.isFinite(recordId),
+    queryKey: ['complaint', recordId, actorUserId],
+    queryFn: () => getComplaint(recordId as number, actorUserId as number),
+    enabled: recordId !== null && Number.isFinite(recordId) && Boolean(actorUserId),
   })
 
   const typeOptions = complaintTypes.data ?? []
   const record = recordQuery.data
+  const filed = Boolean(record?.is_received_and_filed)
+  const readOnly = mode === 'view' || (mode === 'edit' && filed)
+  const copy = mode === 'edit' && filed ? PAGE_COPY.view : PAGE_COPY[mode]
 
   const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintFormSchema),
@@ -428,7 +423,20 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
           htmlFor="manner"
           required
           error={form.formState.errors.manner?.message}
-          action={readOnly ? undefined : <EnhanceButton hasContent={manner.trim().length > 0} />}
+          action={
+            readOnly ? undefined : (
+              <EnhanceButton
+                field="manner"
+                text={manner}
+                onEnhanced={(value) =>
+                  form.setValue('manner', value, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+            )
+          }
         >
           <Textarea
             id="manner"
@@ -445,7 +453,20 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
           htmlFor="relief"
           required
           error={form.formState.errors.relief?.message}
-          action={readOnly ? undefined : <EnhanceButton hasContent={relief.trim().length > 0} />}
+          action={
+            readOnly ? undefined : (
+              <EnhanceButton
+                field="relief"
+                text={relief}
+                onEnhanced={(value) =>
+                  form.setValue('relief', value, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+            )
+          }
         >
           <Textarea
             id="relief"
@@ -463,12 +484,12 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
           <Button type="button" variant="outline" className="cursor-pointer" onClick={goBack}>
             Back
           </Button>
-          {mode !== 'add' && record && !record.is_received_and_filed ? (
+          {mode !== 'add' && record && !isUser && !record.is_received_and_filed ? (
             <Button type="button" variant="outline" className="cursor-pointer" onClick={() => void handleReceivedAndFiled()}>
               Received and filed
             </Button>
           ) : null}
-          {mode !== 'add' && record && record.is_received_and_filed && !record.is_notice_and_summon_issued ? (
+          {mode !== 'add' && record && !isUser && record.is_received_and_filed && !record.is_notice_and_summon_issued ? (
             <Button
               type="button"
               variant="outline"

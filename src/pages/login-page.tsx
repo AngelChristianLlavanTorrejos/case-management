@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { loginUser } from '@/lib/auth-api'
 import { placeholders } from '@/lib/form-fields'
+import { homePathForRole } from '@/lib/roles'
 import { type LoginValues, loginSchema } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -27,7 +28,7 @@ export function LoginPage() {
   })
 
   if (session) {
-    return <Navigate to="/" replace />
+    return <Navigate to={homePathForRole(session.roleName)} replace />
   }
 
   async function onSubmit(values: LoginValues) {
@@ -36,7 +37,7 @@ export function LoginPage() {
     try {
       const nextSession = await loginUser(values.username, values.password)
       setSession(nextSession)
-      navigate('/', { replace: true })
+      navigate(homePathForRole(nextSession.roleName), { replace: true })
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to sign in.')
     }

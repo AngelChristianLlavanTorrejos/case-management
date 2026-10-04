@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { EnhanceButton } from '@/components/ai/enhance-button'
 import { Field } from '@/components/auth/field'
 import { Button } from '@/components/ui/button'
 import {
@@ -157,10 +157,14 @@ export function AddAmicableSettlementDialog({
             required
             error={complaintId && !terms.trim() && error ? error : undefined}
             action={
-              <Button type="button" variant="outline" size="sm" className="shrink-0" disabled={!terms.trim()}>
-                <Sparkles />
-                AI Enhance
-              </Button>
+              <EnhanceButton
+                field="settlement_terms"
+                text={terms}
+                onEnhanced={(value) => {
+                  setTerms(value)
+                  if (error) setError(null)
+                }}
+              />
             }
           >
             <Textarea

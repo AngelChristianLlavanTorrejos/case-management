@@ -62,9 +62,9 @@ function namesFromJoined(value: string) {
     .filter(Boolean)
 }
 
-export async function loadSummonPdfData(id: number): Promise<SummonPdfData> {
+export async function loadSummonPdfData(id: number, actorUserId: number): Promise<SummonPdfData> {
   const summon = await getSummon(id)
-  const complaint = await getComplaint(summon.complaint_id)
+  const complaint = await getComplaint(summon.complaint_id, actorUserId)
   const complainants = complaint.complainants.map((name) => name.trim()).filter(Boolean)
   const respondents = complaint.respondents.map((name) => name.trim()).filter(Boolean)
   const dwellingRecipient = (summon.dwelling_recipient ?? '').trim()
@@ -88,8 +88,8 @@ export async function loadSummonPdfData(id: number): Promise<SummonPdfData> {
   }
 }
 
-export async function downloadSummonPdf(id: number) {
-  const data = await loadSummonPdfData(id)
+export async function downloadSummonPdf(id: number, actorUserId: number) {
+  const data = await loadSummonPdfData(id, actorUserId)
   const blob = await pdf(SummonPdfDocument({ data })).toBlob()
   const slug = (data.barangayCaseNo || `summon-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { AppBreadcrumb } from '@/components/layout/app-breadcrumb'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { NotificationBell } from '@/components/layout/notification-bell'
 import { useIdleLogout } from '@/hooks/use-idle-logout'
 import { useSessionGuard } from '@/hooks/use-session-guard'
 import { getSecuritySettings } from '@/lib/security-settings-api'
@@ -39,10 +40,16 @@ export function AppLayout() {
         {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
       </button>
 
-      <main className="relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto bg-white p-4 sm:p-6">
-        <AppBreadcrumb />
-        <Outlet />
-      </main>
+      <div className="relative min-h-0 min-w-0 flex-1">
+        <div className="absolute top-4 right-4 z-80 sm:top-6 sm:right-6">
+          <NotificationBell />
+        </div>
+
+        <main className="relative z-0 h-full overflow-y-auto bg-white p-4 pr-16 sm:p-6 sm:pr-20">
+          <AppBreadcrumb />
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }

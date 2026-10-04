@@ -22,6 +22,7 @@ export type ComplaintListRow = {
 }
 
 export type ComplaintListQuery = {
+  actorUserId: number
   search: string
   sortKey: string
   sortDir: 'asc' | 'desc'
@@ -101,6 +102,7 @@ export async function listComplaints(query: ComplaintListQuery): Promise<Complai
     p_sort_dir: query.sortDir,
     p_page: query.page,
     p_page_size: query.pageSize,
+    p_actor_user_id: query.actorUserId,
   })
 
   if (error) throw rpcError(error.message)
@@ -118,8 +120,11 @@ export async function listComplaints(query: ComplaintListQuery): Promise<Complai
   }
 }
 
-export async function getComplaint(id: number): Promise<ComplaintRecord> {
-  const { data, error } = await supabase.rpc('get_complaint', { p_id: id })
+export async function getComplaint(id: number, actorUserId: number): Promise<ComplaintRecord> {
+  const { data, error } = await supabase.rpc('get_complaint', {
+    p_id: id,
+    p_actor_user_id: actorUserId,
+  })
   if (error) throw rpcError(error.message)
 
   const parsed = parseJson<ComplaintRecord>(data)

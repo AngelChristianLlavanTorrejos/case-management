@@ -16,6 +16,7 @@ import {
   type ComplaintListRow,
 } from '@/lib/complaints-api'
 import { placeholders } from '@/lib/form-fields'
+import { isUserRole } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
@@ -45,6 +46,7 @@ export function ComplainantsFormPage() {
   const confirm = useConfirm()
   const queryClient = useQueryClient()
   const actorUserId = useAuthStore((state) => state.session?.id)
+  const isUser = isUserRole(useAuthStore((state) => state.session?.roleName))
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -53,15 +55,17 @@ export function ComplainantsFormPage() {
   const [issueId, setIssueId] = useState<number | null>(null)
 
   const listQuery = useQuery({
-    queryKey: ['complaints', search, sortKey, sortDir, page],
+    queryKey: ['complaints', actorUserId, search, sortKey, sortDir, page],
     queryFn: () =>
       listComplaints({
+        actorUserId: actorUserId as number,
         search,
         sortKey,
         sortDir,
         page,
         pageSize: PAGE_SIZE,
       }),
+    enabled: Boolean(actorUserId),
   })
 
   const rows = listQuery.data?.rows ?? []
@@ -153,24 +157,30 @@ export function ComplainantsFormPage() {
 
   const actions: PageContentAction<ComplaintListRow>[] = [
     { label: 'View', icon: Eye, onSelect: (row) => navigate(`/complainants-form/${row.id}/view`) },
-    { label: 'Edit', icon: Pencil, onSelect: (row) => navigate(`/complainants-form/${row.id}/edit`) },
+    {
+      label: 'Edit',
+      icon: Pencil,
+      onSelect: (row) => navigate(`/complainants-form/${row.id}/edit`),
+      hidden: (row) => row.is_received_and_filed,
+    },
     {
       label: 'Received and filed',
       icon: FileCheck,
       onSelect: (row) => void handleReceivedAndFiled(row),
-      hidden: (row) => row.is_received_and_filed,
+      hidden: (row) => isUser || row.is_received_and_filed,
     },
     {
       label: 'Notice of Hearing and Summon',
       icon: FileText,
       onSelect: (row) => setIssueId(row.id),
-      hidden: (row) => !row.is_received_and_filed || row.is_notice_and_summon_issued,
+      hidden: (row) => isUser || !row.is_received_and_filed || row.is_notice_and_summon_issued,
     },
     {
       label: 'Delete',
       icon: Trash2,
       onSelect: (row) => void handleDelete(row),
       variant: 'destructive',
+      hidden: (row) => row.is_received_and_filed,
     },
   ]
 

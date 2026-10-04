@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/hooks/use-toast.tsx'
+import { askDashboard } from '@/lib/ai-api'
 import { getDashboardStats, type DashboardPeriod, type DashboardStats } from '@/lib/dashboard-api'
 
 const QUESTIONS = [
@@ -37,6 +38,8 @@ export function HomePage() {
   const navigate = useNavigate()
   const [period, setPeriod] = useState<DashboardPeriod>('month')
   const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [asking, setAsking] = useState<string | null>(null)
 
   const statsQuery = useQuery({
     queryKey: ['dashboard-stats', period],
@@ -54,6 +57,19 @@ export function HomePage() {
 
   const stats = statsQuery.data ?? EMPTY_STATS
   const periodLabel = period === 'year' ? 'This year' : 'This month'
+
+  async function ask(label: string) {
+    setQuestion(label)
+    setAnswer('')
+    setAsking(label)
+    try {
+      setAnswer(await askDashboard(label, period))
+    } catch (error) {
+      toast.error('Unable to ask AI.', error instanceof Error ? error.message : undefined)
+    } finally {
+      setAsking(null)
+    }
+  }
 
   return (
     <div className="grid gap-8">
@@ -197,7 +213,6 @@ export function HomePage() {
           value={question}
           placeholder="Ask about cases or this dashboard…"
         />
-        <p className="mt-1 text-xs text-[#666666]">Coming soon</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {QUESTIONS.map((label) => (
             <Button
@@ -205,12 +220,19 @@ export function HomePage() {
               type="button"
               variant={question === label ? 'default' : 'outline'}
               className="h-auto whitespace-normal py-1.5 text-left"
-              onClick={() => setQuestion(label)}
+              disabled={asking !== null}
+              onClick={() => void ask(label)}
             >
               {label}
             </Button>
           ))}
         </div>
+        {asking ? <p className="mt-3 text-sm text-[#666666]">Asking…</p> : null}
+        {answer ? (
+          <p className="mt-3 rounded-lg border border-[#E5E5E6] bg-white p-4 text-sm whitespace-pre-wrap text-[#171717]">
+            {answer}
+          </p>
+        ) : null}
       </section>
     </div>
   )

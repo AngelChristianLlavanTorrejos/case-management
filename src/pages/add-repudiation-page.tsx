@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { EnhanceButton } from '@/components/ai/enhance-button'
 import { Field } from '@/components/auth/field'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -181,6 +181,7 @@ export function AddRepudiationPage() {
           <p className="text-sm text-[#666666]">(Check out whichever is applicable)</p>
           <GroundField
             id="repudiation-fraud"
+            field="fraud"
             label="Fraud. (State details)"
             checked={fraud}
             details={fraudDetails}
@@ -192,6 +193,7 @@ export function AddRepudiationPage() {
           />
           <GroundField
             id="repudiation-violence"
+            field="violence"
             label="Violence. (State details)"
             checked={violence}
             details={violenceDetails}
@@ -203,6 +205,7 @@ export function AddRepudiationPage() {
           />
           <GroundField
             id="repudiation-intimidation"
+            field="intimidation"
             label="Intimidation. (State details)"
             checked={intimidation}
             details={intimidationDetails}
@@ -253,17 +256,9 @@ export function AddRepudiationPage() {
   )
 }
 
-function EnhanceButton({ hasContent }: { hasContent: boolean }) {
-  return (
-    <Button type="button" variant="outline" size="sm" className="shrink-0" disabled={!hasContent}>
-      <Sparkles />
-      AI Enhance
-    </Button>
-  )
-}
-
 function GroundField({
   id,
+  field,
   label,
   checked,
   details,
@@ -272,6 +267,7 @@ function GroundField({
   onClearError,
 }: {
   id: string
+  field: 'fraud' | 'violence' | 'intimidation'
   label: string
   checked: boolean
   details: string
@@ -294,7 +290,15 @@ function GroundField({
           />
           <span>{label}</span>
         </label>
-        <EnhanceButton hasContent={checked && details.trim().length > 0} />
+        <EnhanceButton
+          field={field}
+          text={details}
+          disabled={!checked}
+          onEnhanced={(value) => {
+            onDetailsChange(value)
+            onClearError()
+          }}
+        />
       </div>
       <Textarea
         id={`${id}-details`}

@@ -3,8 +3,32 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import { X } from 'lucide-react'
 import { cn } from 'cn'
 
-function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+let openDialogCount = 0
+const openDialogListeners = new Set<() => void>()
+
+function setOpenDialogCount(next: number) {
+  openDialogCount = next
+  openDialogListeners.forEach((listener) => listener())
+}
+
+export function useAnyDialogOpen() {
+  return React.useSyncExternalStore(
+    (listener) => {
+      openDialogListeners.add(listener)
+      return () => openDialogListeners.delete(listener)
+    },
+    () => openDialogCount > 0,
+  )
+}
+
+function Dialog({ open, ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  React.useEffect(() => {
+    if (!open) return
+    setOpenDialogCount(openDialogCount + 1)
+    return () => setOpenDialogCount(openDialogCount - 1)
+  }, [open])
+
+  return <DialogPrimitive.Root data-slot="dialog" open={open} {...props} />
 }
 
 function DialogTrigger({ ...props }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
