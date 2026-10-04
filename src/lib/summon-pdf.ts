@@ -4,6 +4,7 @@ import { SummonPdfDocument } from '@/components/summon/summon-pdf-document'
 import { getComplaint } from '@/lib/complaints-api'
 import { getSummon } from '@/lib/hearing-summon-api'
 import { ordinalDay } from '@/lib/pdf-dates'
+import { getLuponChairmanName } from '@/lib/positions-api'
 
 export type SummonPdfDateParts = {
   day: string
@@ -28,6 +29,7 @@ export type SummonPdfData = {
   officeRecipient: string
   officerInCharge: string
   personalService: boolean
+  luponChairmanName: string
 }
 
 function splitDateParts(value: string | null): SummonPdfDateParts {
@@ -63,7 +65,7 @@ function namesFromJoined(value: string) {
 }
 
 export async function loadSummonPdfData(id: number, actorUserId: number): Promise<SummonPdfData> {
-  const summon = await getSummon(id)
+  const [summon, luponChairmanName] = await Promise.all([getSummon(id), getLuponChairmanName()])
   const complaint = await getComplaint(summon.complaint_id, actorUserId)
   const complainants = complaint.complainants.map((name) => name.trim()).filter(Boolean)
   const respondents = complaint.respondents.map((name) => name.trim()).filter(Boolean)
@@ -85,6 +87,7 @@ export async function loadSummonPdfData(id: number, actorUserId: number): Promis
     officeRecipient,
     officerInCharge: (summon.officer_in_charge ?? '').trim(),
     personalService: Boolean(summon.served_on && !dwellingRecipient && !officeRecipient),
+    luponChairmanName,
   }
 }
 

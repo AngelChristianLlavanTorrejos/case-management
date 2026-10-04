@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { GlobalLoadingOverlay } from '@/components/layout/global-loading-overlay'
 import { ConfirmProvider } from '@/hooks/use-confirm'
 import { Toaster } from '@/hooks/use-toast.tsx'
 import App from './App.tsx'
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
       <ConfirmProvider>
         <App />
         <Toaster />
+        <GlobalLoadingOverlay />
       </ConfirmProvider>
     </QueryClientProvider>
   </StrictMode>,

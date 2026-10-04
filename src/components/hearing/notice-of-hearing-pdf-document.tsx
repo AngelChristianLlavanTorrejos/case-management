@@ -170,7 +170,13 @@ export function NoticeOfHearingPdfDocument({ data }: { data: NoticeHearingPdfDat
         </Text>
 
         <View style={styles.signBlock}>
-          <View style={styles.signLine} />
+          <View style={styles.nameLine}>
+            {data.luponChairmanName ? (
+              <Text style={styles.fill}>{data.luponChairmanName}</Text>
+            ) : (
+              <Text> </Text>
+            )}
+          </View>
           <Text style={styles.signCaption}>Punong Barangay/Lupon Chairman</Text>
         </View>
 

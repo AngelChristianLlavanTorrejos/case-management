@@ -3,6 +3,7 @@ import { pdf } from '@react-pdf/renderer'
 import { NoticeOfHearingMotionPdfDocument } from '@/components/motion/notice-of-hearing-motion-pdf-document'
 import { getNoticeOfHearingMotion } from '@/lib/notice-of-hearing-motion-api'
 import { ordinalDay } from '@/lib/pdf-dates'
+import { getLuponChairmanName } from '@/lib/positions-api'
 
 export type NoticeMotionPdfDateParts = {
   day: string
@@ -23,6 +24,7 @@ export type NoticeMotionPdfData = {
   appear: NoticeMotionPdfDateParts & NoticeMotionPdfTimeParts
   filedByNames: string
   issued: NoticeMotionPdfDateParts
+  luponChairmanName: string
 }
 
 function splitDateParts(value: string | null): NoticeMotionPdfDateParts {
@@ -51,7 +53,10 @@ function splitTimeParts(value: string | null): NoticeMotionPdfTimeParts {
 }
 
 export async function loadNoticeOfHearingMotionPdfData(id: number): Promise<NoticeMotionPdfData> {
-  const record = await getNoticeOfHearingMotion(id)
+  const [record, luponChairmanName] = await Promise.all([
+    getNoticeOfHearingMotion(id),
+    getLuponChairmanName(),
+  ])
   const complainants = record.complainants.map((name) => name.trim()).filter(Boolean)
   const respondents = record.respondents.map((name) => name.trim()).filter(Boolean)
   const filedByNames =
@@ -68,6 +73,7 @@ export async function loadNoticeOfHearingMotionPdfData(id: number): Promise<Noti
     },
     filedByNames,
     issued: splitDateParts(record.issued_on),
+    luponChairmanName,
   }
 }
 

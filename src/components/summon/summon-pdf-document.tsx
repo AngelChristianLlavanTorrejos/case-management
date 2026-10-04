@@ -291,7 +291,7 @@ export function SummonPdfDocument({ data }: { data: SummonPdfData }) {
         </Text>
 
         <View style={styles.signBlock}>
-          <View style={styles.signLine} />
+          <NameLine value={data.luponChairmanName} />
           <Text style={styles.signCaption}>Punong Barangay/Pangkat Chairman</Text>
         </View>
       </Page>

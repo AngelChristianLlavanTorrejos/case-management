@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { IconInput } from '@/components/ui/icon-input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export type SortDir = 'asc' | 'desc'
@@ -263,11 +264,18 @@ export function PageContent<T>({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length + 1} className="py-10 text-center text-[#666666]">
-                  Loading records...
-                </TableCell>
-              </TableRow>
+              Array.from({ length: Math.min(pageSize, 5) }, (_, rowIndex) => (
+                <TableRow key={`skeleton-${rowIndex}`}>
+                  {columns.map((column) => (
+                    <TableCell key={column.key} className={column.className}>
+                      <Skeleton className="h-4 w-full max-w-[12rem]" />
+                    </TableCell>
+                  ))}
+                  <TableCell className="sticky right-0 z-20 border-l border-[#E5E5E6] bg-white text-right">
+                    <Skeleton className="ml-auto size-7 rounded-md" />
+                  </TableCell>
+                </TableRow>
+              ))
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length + 1} className="py-10 text-center text-[#666666]">

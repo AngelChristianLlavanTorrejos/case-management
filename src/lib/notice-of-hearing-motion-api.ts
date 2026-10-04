@@ -1,3 +1,5 @@
+import { notifyComplaintSms } from '@/lib/complaint-sms'
+import { getMotionForExecution } from '@/lib/motion-for-execution-api'
 import { supabase } from '@/lib/supabase'
 
 export type NoticeMotionListRow = {
@@ -59,6 +61,10 @@ export async function issueNoticeOfHearingMotion(
 
   const parsed = parseJson<{ id?: number }>(data)
   if (!parsed?.id) throw new Error('Notice of hearing was not saved.')
+  const motion = await getMotionForExecution(motionId)
+  await notifyComplaintSms('notice_of_hearing_motion', motion.complaint_id, {
+    appearAt,
+  })
   return { id: parsed.id }
 }
 

@@ -3,6 +3,7 @@ import { pdf } from '@react-pdf/renderer'
 import { NoticeOfExecutionPdfDocument } from '@/components/execution/notice-of-execution-pdf-document'
 import { getNoticeOfExecution } from '@/lib/notice-of-execution-api'
 import { ordinalDay } from '@/lib/pdf-dates'
+import { getLuponChairmanName } from '@/lib/positions-api'
 
 export type ExecutionPdfDateParts = {
   day: string
@@ -21,6 +22,7 @@ export type ExecutionPdfData = {
   personalPropertyOf: string
   amount: string
   signed: ExecutionPdfDateParts
+  luponChairmanName: string
 }
 
 function splitDateParts(value: string | null): ExecutionPdfDateParts {
@@ -35,7 +37,10 @@ function splitDateParts(value: string | null): ExecutionPdfDateParts {
 }
 
 export async function loadNoticeOfExecutionPdfData(id: number): Promise<ExecutionPdfData> {
-  const record = await getNoticeOfExecution(id)
+  const [record, luponChairmanName] = await Promise.all([
+    getNoticeOfExecution(id),
+    getLuponChairmanName(),
+  ])
   const complainants = record.complainants.map((name) => name.trim()).filter(Boolean)
   const respondents = record.respondents.map((name) => name.trim()).filter(Boolean)
   const partyObligedNames =
@@ -52,6 +57,7 @@ export async function loadNoticeOfExecutionPdfData(id: number): Promise<Executio
     personalPropertyOf: record.personal_property_of.trim(),
     amount: record.amount.trim(),
     signed: splitDateParts(record.created_at),
+    luponChairmanName,
   }
 }
 

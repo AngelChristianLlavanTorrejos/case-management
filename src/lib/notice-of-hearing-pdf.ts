@@ -3,6 +3,7 @@ import { pdf } from '@react-pdf/renderer'
 import { NoticeOfHearingPdfDocument } from '@/components/hearing/notice-of-hearing-pdf-document'
 import { getNoticeOfHearing } from '@/lib/hearing-summon-api'
 import { ordinalDay } from '@/lib/pdf-dates'
+import { getLuponChairmanName } from '@/lib/positions-api'
 
 export type NoticeHearingPdfDateParts = {
   day: string
@@ -21,6 +22,7 @@ export type NoticeHearingPdfData = {
   appear: NoticeHearingPdfDateParts & NoticeHearingPdfTimeParts
   issued: NoticeHearingPdfDateParts
   acknowledged: NoticeHearingPdfDateParts
+  luponChairmanName: string
 }
 
 function calendarDate(value: string | null) {
@@ -59,13 +61,17 @@ function splitAppearParts(value: string | null): NoticeHearingPdfDateParts & Not
 }
 
 export async function loadNoticeOfHearingPdfData(id: number, actorUserId: number): Promise<NoticeHearingPdfData> {
-  const notice = await getNoticeOfHearing(id, actorUserId)
+  const [notice, luponChairmanName] = await Promise.all([
+    getNoticeOfHearing(id, actorUserId),
+    getLuponChairmanName(),
+  ])
   return {
     barangayCaseNo: (notice.barangay_case_no ?? '').trim(),
     complainants: (notice.complainants ?? '').trim(),
     appear: splitAppearParts(notice.appear_at),
     issued: splitDateParts(notice.issued_on),
     acknowledged: splitDateParts(notice.acknowledged_on),
+    luponChairmanName,
   }
 }
 

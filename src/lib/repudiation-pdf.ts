@@ -2,6 +2,7 @@ import { pdf } from '@react-pdf/renderer'
 
 import { RepudiationPdfDocument } from '@/components/repudiation/repudiation-pdf-document'
 import { ordinalDay } from '@/lib/pdf-dates'
+import { getLuponChairmanName } from '@/lib/positions-api'
 import { getRepudiation } from '@/lib/repudiation-api'
 
 export type RepudiationPdfDateParts = {
@@ -24,6 +25,8 @@ export type RepudiationPdfData = {
   thisDate: RepudiationPdfDateParts
   sworn: RepudiationPdfDateParts
   received: RepudiationPdfDateParts
+  receivedAndFiledByName: string
+  luponChairmanName: string
 }
 
 function splitDateParts(value: string | null): RepudiationPdfDateParts {
@@ -40,8 +43,14 @@ function splitDateParts(value: string | null): RepudiationPdfDateParts {
   }
 }
 
-export async function loadRepudiationPdfData(id: number): Promise<RepudiationPdfData> {
-  const record = await getRepudiation(id)
+export async function loadRepudiationPdfData(
+  id: number,
+  actorUserId: number,
+): Promise<RepudiationPdfData> {
+  const [record, luponChairmanName] = await Promise.all([
+    getRepudiation(id, actorUserId),
+    getLuponChairmanName(),
+  ])
   return {
     barangayCaseNo: (record.barangay_case_no ?? '').trim(),
     complaintType: (record.complaint_type ?? '').trim(),
@@ -56,11 +65,13 @@ export async function loadRepudiationPdfData(id: number): Promise<RepudiationPdf
     thisDate: splitDateParts(record.created_at),
     sworn: splitDateParts(record.sworn_on),
     received: splitDateParts(record.received_and_filed_on),
+    receivedAndFiledByName: (record.received_and_filed_by_name ?? '').trim(),
+    luponChairmanName,
   }
 }
 
-export async function downloadRepudiationPdf(id: number) {
-  const data = await loadRepudiationPdfData(id)
+export async function downloadRepudiationPdf(id: number, actorUserId: number) {
+  const data = await loadRepudiationPdfData(id, actorUserId)
   const blob = await pdf(RepudiationPdfDocument({ data })).toBlob()
   const slug = (data.barangayCaseNo || `repudiation-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)

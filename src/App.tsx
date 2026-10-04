@@ -10,6 +10,7 @@ import { CivilStatusPage } from '@/pages/civil-status-page'
 import { ComplaintTypesPage } from '@/pages/complaint-types-page'
 import { ComplainantRecordPage } from '@/pages/complainant-record-page'
 import { ComplainantsFormPage } from '@/pages/complainants-form-page'
+import { AddCommunityMemberPage } from '@/pages/add-community-member-page'
 import { CommunityMembersPage } from '@/pages/community-members-page'
 import { HomePage } from '@/pages/home-page'
 import { AddLuponMemberPage } from '@/pages/add-lupon-member-page'
@@ -94,6 +95,7 @@ function App() {
           <Route path="/technical-support/:id/view" element={<SuperAdminOnly><StaffAccountRecordPage kind="technical" mode="view" /></SuperAdminOnly>} />
           <Route path="/technical-support/:id/edit" element={<SuperAdminOnly><StaffAccountRecordPage kind="technical" mode="edit" /></SuperAdminOnly>} />
           <Route path="/community-members" element={<SuperAdminOnly><CommunityMembersPage /></SuperAdminOnly>} />
+          <Route path="/community-members/add" element={<SuperAdminOnly><AddCommunityMemberPage /></SuperAdminOnly>} />
           <Route path="/community-members/:id/view" element={<SuperAdminOnly><StaffAccountRecordPage kind="community" mode="view" /></SuperAdminOnly>} />
           <Route path="/community-members/:id/edit" element={<SuperAdminOnly><StaffAccountRecordPage kind="community" mode="edit" /></SuperAdminOnly>} />
           <Route path="/complainants-form" element={<ComplainantsFormPage />} />
@@ -104,14 +106,14 @@ function App() {
           <Route path="/summon-for-the-respondent" element={<StaffOnly><SummonForRespondentPage /></StaffOnly>} />
           <Route path="/summon-for-the-respondent/:id/edit" element={<StaffOnly><SummonRecordPage mode="edit" /></StaffOnly>} />
           <Route path="/summon-for-the-respondent/:id/view" element={<StaffOnly><SummonRecordPage mode="view" /></StaffOnly>} />
-          <Route path="/amicable-settlement" element={<AmicableSettlementPage />} />
+          <Route path="/amicable-settlement" element={<StaffOnly><AmicableSettlementPage /></StaffOnly>} />
           <Route path="/repudiation" element={<RepudiationPage />} />
           <Route path="/repudiation/add" element={<AddRepudiationPage />} />
-          <Route path="/certificate-to-file-action" element={<CertificateToFileActionPage />} />
-          <Route path="/motion-for-execution" element={<MotionForExecutionPage />} />
-          <Route path="/notice-of-hearing-motion" element={<NoticeOfHearingMotionPage />} />
-          <Route path="/notice-of-execution" element={<NoticeOfExecutionPage />} />
-          <Route path="/notice-of-execution/add" element={<AddNoticeOfExecutionPage />} />
+          <Route path="/certificate-to-file-action" element={<StaffOnly><CertificateToFileActionPage /></StaffOnly>} />
+          <Route path="/motion-for-execution" element={<StaffOnly><MotionForExecutionPage /></StaffOnly>} />
+          <Route path="/notice-of-hearing-motion" element={<StaffOnly><NoticeOfHearingMotionPage /></StaffOnly>} />
+          <Route path="/notice-of-execution" element={<StaffOnly><NoticeOfExecutionPage /></StaffOnly>} />
+          <Route path="/notice-of-execution/add" element={<StaffOnly><AddNoticeOfExecutionPage /></StaffOnly>} />
           <Route path="/user-activity-log" element={<SuperAdminOnly><UserActivityLogPage /></SuperAdminOnly>} />
           <Route path="/baseline-security" element={<SuperAdminOnly><BaselineSecurityPage /></SuperAdminOnly>} />
           <Route path="/my-profile" element={<MyProfilePage />} />

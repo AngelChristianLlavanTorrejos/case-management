@@ -124,6 +124,73 @@ export async function getCommunityMember(id: number): Promise<CommunityMember> {
   return parseJson<CommunityMember>(data)
 }
 
+export async function createCommunityMember(
+  actorUserId: number,
+  payload: {
+    first_name: string
+    middle_name: string
+    last_name: string
+    suffix_id: number
+    sex_id: number
+    civil_status_id: number
+    birthdate: string
+    present_address_house_block_lot: string
+    present_address_street: string
+    present_address_barangay: string
+    present_address_municipality_city: string
+    present_address_province: string
+    present_address_region: string
+    present_address_zip_code: string
+    permanent_address_house_block_lot: string
+    permanent_address_street: string
+    permanent_address_barangay: string
+    permanent_address_municipality_city: string
+    permanent_address_province: string
+    permanent_address_region: string
+    permanent_address_zip_code: string
+    mobile_number: string
+    telephone_number: string
+    email: string
+    username: string
+    password: string
+  },
+): Promise<{ id: number }> {
+  const { data, error } = await supabase.rpc('create_community_member', {
+    p_actor_user_id: actorUserId,
+    p_first_name: payload.first_name,
+    p_middle_name: payload.middle_name,
+    p_last_name: payload.last_name,
+    p_suffix_id: payload.suffix_id,
+    p_sex_id: payload.sex_id,
+    p_civil_status_id: payload.civil_status_id,
+    p_birthdate: payload.birthdate,
+    p_present_address_house_block_lot: payload.present_address_house_block_lot,
+    p_present_address_street: payload.present_address_street,
+    p_present_address_barangay: payload.present_address_barangay,
+    p_present_address_municipality_city: payload.present_address_municipality_city,
+    p_present_address_province: payload.present_address_province,
+    p_present_address_region: payload.present_address_region,
+    p_present_address_zip_code: payload.present_address_zip_code,
+    p_permanent_address_house_block_lot: payload.permanent_address_house_block_lot,
+    p_permanent_address_street: payload.permanent_address_street,
+    p_permanent_address_barangay: payload.permanent_address_barangay,
+    p_permanent_address_municipality_city: payload.permanent_address_municipality_city,
+    p_permanent_address_province: payload.permanent_address_province,
+    p_permanent_address_region: payload.permanent_address_region,
+    p_permanent_address_zip_code: payload.permanent_address_zip_code,
+    p_mobile_number: payload.mobile_number,
+    p_telephone_number: payload.telephone_number,
+    p_email: payload.email,
+    p_username: payload.username,
+    p_password: payload.password,
+  })
+  if (error) throw rpcError(error.message)
+
+  const parsed = parseJson<{ id?: number }>(data)
+  if (!parsed?.id) throw new Error('Community member was not saved.')
+  return { id: parsed.id }
+}
+
 export async function approveCommunityMember(id: number, actorUserId: number): Promise<void> {
   const { error } = await supabase.rpc('approve_community_member', {
     p_id: id,

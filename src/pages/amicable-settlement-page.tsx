@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, FileDown } from 'lucide-react'
+import { Check, FileDown, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
 import { AddAmicableSettlementDialog } from '@/components/settlement/add-amicable-settlement-dialog'
+import { CreateCaseRespondentDialog } from '@/components/settlement/create-case-respondent-dialog'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import {
@@ -44,6 +45,8 @@ export function AmicableSettlementPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
+  const [respondentComplaintId, setRespondentComplaintId] = useState<number | null>(null)
+  const [respondentCaseLabel, setRespondentCaseLabel] = useState<string | null>(null)
 
   const listQuery = useQuery({
     queryKey: ['amicable-settlements', search, sortKey, sortDir, page],
@@ -97,7 +100,7 @@ export function AmicableSettlementPage() {
 
     try {
       if (!actorUserId) throw new Error('You must be signed in.')
-      await markAmicableSettlementSettled(row.id, actorUserId)
+      await markAmicableSettlementSettled(row.id, actorUserId, row.complaint_id)
       await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
       await queryClient.invalidateQueries({ queryKey: ['repudiation-cases'] })
       await queryClient.invalidateQueries({ queryKey: ['motion-for-execution-cases'] })
@@ -113,6 +116,15 @@ export function AmicableSettlementPage() {
   }
 
   const actions: PageContentAction<AmicableSettlementListRow>[] = [
+    {
+      label: 'Create respondent account',
+      icon: UserPlus,
+      hidden: (row) => !row.requires_respondent_account,
+      onSelect: (row) => {
+        setRespondentComplaintId(row.complaint_id)
+        setRespondentCaseLabel(row.barangay_case_no)
+      },
+    },
     {
       label: 'Export PDF',
       icon: FileDown,
@@ -195,6 +207,24 @@ export function AmicableSettlementPage() {
         onCreated={async () => {
           await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
           await queryClient.invalidateQueries({ queryKey: ['amicable-settlement-cases'] })
+        }}
+        onRequiresRespondent={(complaintId, caseLabel) => {
+          setRespondentComplaintId(complaintId)
+          setRespondentCaseLabel(caseLabel)
+        }}
+      />
+      <CreateCaseRespondentDialog
+        open={respondentComplaintId != null}
+        complaintId={respondentComplaintId}
+        caseLabel={respondentCaseLabel}
+        actorUserId={actorUserId}
+        onClose={() => {
+          setRespondentComplaintId(null)
+          setRespondentCaseLabel(null)
+        }}
+        onCreated={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['amicable-settlements'] })
+          await queryClient.invalidateQueries({ queryKey: ['repudiation-cases'] })
         }}
       />
     </>

@@ -1,3 +1,5 @@
+import { notifyComplaintSms } from '@/lib/complaint-sms'
+import { getNoticeOfHearingMotion } from '@/lib/notice-of-hearing-motion-api'
 import { supabase } from '@/lib/supabase'
 
 export type ExecutionCaseOption = {
@@ -84,6 +86,8 @@ export async function createNoticeOfExecution(
 
   const parsed = parseJson<{ id?: number }>(data)
   if (!parsed?.id) throw new Error('Notice of execution was not saved.')
+  const noticeMotion = await getNoticeOfHearingMotion(noticeMotionId)
+  await notifyComplaintSms('notice_of_execution', noticeMotion.complaint_id)
   return { id: parsed.id }
 }
 

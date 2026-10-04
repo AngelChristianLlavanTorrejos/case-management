@@ -165,6 +165,8 @@ export function CommunityMembersPage() {
           searchPlaceholder={placeholders.search_member}
           searchValue={search}
           onSearchChange={setSearch}
+          addLabel="Add"
+          onAdd={() => navigate('/community-members/add')}
           columns={[
             { key: 'display_name', header: 'Name', sortable: true },
             { key: 'age', header: 'Age', sortable: true, className: 'w-24' },

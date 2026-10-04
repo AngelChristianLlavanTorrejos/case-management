@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -228,7 +229,14 @@ function NoticeViewDialog({
             {query.error instanceof Error ? query.error.message : 'Unable to load this notice.'}
           </p>
         ) : query.isLoading || !notice ? (
-          <p className="py-8 text-center text-sm text-[#666666]">Loading notice...</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div key={index} className="grid gap-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             <DetailItem label="Barangay case no." value={notice.barangay_case_no ?? ''} />

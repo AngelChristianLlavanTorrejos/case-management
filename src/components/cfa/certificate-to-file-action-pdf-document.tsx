@@ -182,7 +182,7 @@ export function CertificateToFileActionPdfDocument({ data }: { data: CfaPdfData 
 
         <Text style={styles.attested}>Attested by:</Text>
         <View style={styles.signBlock}>
-          <View style={styles.signLine} />
+          <NameLine value={data.luponChairmanName} />
           <Text style={styles.signCaption}>Pangkat Chairman</Text>
         </View>
       </Page>

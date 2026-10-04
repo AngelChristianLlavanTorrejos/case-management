@@ -26,11 +26,13 @@ export function AddAmicableSettlementDialog({
   actorUserId,
   onClose,
   onCreated,
+  onRequiresRespondent,
 }: {
   open: boolean
   actorUserId: number | undefined
   onClose: () => void
   onCreated: () => Promise<void>
+  onRequiresRespondent?: (complaintId: number, caseLabel: string | null) => void
 }) {
   const [complaintId, setComplaintId] = useState('')
   const [terms, setTerms] = useState('')
@@ -87,11 +89,15 @@ export function AddAmicableSettlementDialog({
     setSaving(true)
     setError(null)
     try {
-      await createAmicableSettlement(Number(complaintId), actorUserId, terms)
+      const created = await createAmicableSettlement(Number(complaintId), actorUserId, terms)
       await onCreated()
       toast.success('Amicable settlement recorded.')
+      const label = selected?.barangay_case_no ?? null
       reset()
       onClose()
+      if (created.requires_respondent_account) {
+        onRequiresRespondent?.(created.complaint_id, label)
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Unable to save this settlement.')
     } finally {

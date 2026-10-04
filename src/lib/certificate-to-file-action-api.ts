@@ -1,3 +1,4 @@
+import { notifyComplaintSms } from '@/lib/complaint-sms'
 import { supabase } from '@/lib/supabase'
 
 export type CfaCaseOption = {
@@ -62,6 +63,7 @@ export async function createCertificateToFileAction(
 
   const parsed = parseJson<{ id?: number }>(data)
   if (!parsed?.id) throw new Error('Certificate to file action was not saved.')
+  await notifyComplaintSms('certificate_to_file_action', complaintId)
   return { id: parsed.id }
 }
 

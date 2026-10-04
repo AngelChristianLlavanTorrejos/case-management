@@ -7,6 +7,17 @@ const corsHeaders = {
 
 const IPROG_SMS_URL = 'https://www.iprogsms.com/api/v1/sms_messages'
 
+const DUAL_PARTY_KINDS = new Set([
+  'repudiation_filed',
+  'repudiation_received_and_filed',
+  'amicable_settlement_recorded',
+  'settlement_settled',
+  'motion_for_execution_created',
+  'notice_of_hearing_motion',
+  'notice_of_execution',
+  'certificate_to_file_action',
+])
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -82,6 +93,42 @@ function buildMessage(kind: string, caseNo: string, appearAt: string | null, com
     return `Tanza 1: Your complaint is now Received and Filed. Case no. ${caseNo}. A Notice of Hearing will be issued within 3 days.`
   }
 
+  if (kind === 'repudiation_filed') {
+    return `Tanza 1: A repudiation was filed for case ${caseNo}. It is pending Received and Filed.`
+  }
+
+  if (kind === 'repudiation_received_and_filed') {
+    return `Tanza 1: Your repudiation is now Received and Filed. Case no. ${caseNo}.`
+  }
+
+  if (kind === 'amicable_settlement_recorded') {
+    return `Tanza 1: An amicable settlement was recorded for case ${caseNo}. You may file a repudiation within 10 days.`
+  }
+
+  if (kind === 'settlement_settled') {
+    return `Tanza 1: The amicable settlement for case ${caseNo} is now Settled.`
+  }
+
+  if (kind === 'motion_for_execution_created') {
+    return `Tanza 1: A Motion for Execution was filed for case ${caseNo}.`
+  }
+
+  if (kind === 'notice_of_hearing_motion') {
+    const when = manilaAppearParts(appearAt)
+    if (when) {
+      return `Tanza 1: NOTICE OF HEARING (RE: Motion for Execution) for case ${caseNo}. Appear on the ${when.day} day of ${when.month}, ${when.year} at ${when.time} o'clock in the ${when.period}.`
+    }
+    return `Tanza 1: NOTICE OF HEARING (RE: Motion for Execution) was issued for case ${caseNo}.`
+  }
+
+  if (kind === 'notice_of_execution') {
+    return `Tanza 1: A Notice of Execution was issued for case ${caseNo}.`
+  }
+
+  if (kind === 'certificate_to_file_action') {
+    return `Tanza 1: A Certificate to File Action was issued for case ${caseNo}.`
+  }
+
   if (kind === 'notice_of_hearing') {
     const when = manilaAppearParts(appearAt)
     if (!when) throw new Error('Hearing schedule is missing.')
@@ -142,6 +189,47 @@ async function iprogSend(phoneNumber: string, message: string) {
   }
 }
 
+async function sendDualPartySms(
+  supabase: ReturnType<typeof createAnonClient>,
+  kind: string,
+  complaintId: number,
+  appearAt: string | null,
+) {
+  const info = await supabase.rpc('get_repudiation_notify_info', {
+    p_complaint_id: complaintId,
+  })
+  if (info.error) throw new Error(rpcErrorMessage(info.error.message))
+
+  const parsed =
+    typeof info.data === 'string' ? JSON.parse(info.data) : (info.data as Record<string, unknown> | null)
+  const caseNo = String(parsed?.barangay_case_no ?? '').trim()
+  const creatorRole = String(parsed?.creator_role ?? '').trim()
+  const recipients = Array.isArray(parsed?.recipients)
+    ? (parsed.recipients as Array<{ mobile_number?: string }>)
+    : []
+
+  if (creatorRole && creatorRole !== 'User') {
+    return jsonResponse({ ok: true, skipped: 'staff_created' })
+  }
+  if (!caseNo) throw new Error('This complaint has no case number yet.')
+
+  const mobiles = [
+    ...new Set(
+      recipients
+        .map((item) => String(item?.mobile_number ?? '').trim())
+        .filter(Boolean)
+        .map((raw) => normalizePhMobile(raw)),
+    ),
+  ]
+  if (mobiles.length === 0) return jsonResponse({ ok: true, skipped: 'no_mobile' })
+
+  const message = buildMessage(kind, caseNo, appearAt, '')
+  for (const mobile of mobiles) {
+    await iprogSend(mobile, message)
+  }
+  return jsonResponse({ ok: true, sent: mobiles.length })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -155,12 +243,18 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as Record<string, unknown>
     const kind = String(body.kind ?? '')
     const complaintId = Number(body.complaint_id)
+    const bodyAppearAt = body.appear_at ? String(body.appear_at) : null
 
     if (!Number.isFinite(complaintId)) {
       throw new Error('Complaint not found')
     }
 
     const supabase = createAnonClient(req)
+
+    if (DUAL_PARTY_KINDS.has(kind)) {
+      return await sendDualPartySms(supabase, kind, complaintId, bodyAppearAt)
+    }
+
     const info = await supabase.rpc('get_complaint_notify_info', { p_id: complaintId })
     if (info.error) throw new Error(rpcErrorMessage(info.error.message))
 
@@ -168,8 +262,14 @@ Deno.serve(async (req) => {
       typeof info.data === 'string' ? JSON.parse(info.data) : (info.data as Record<string, unknown> | null)
     const caseNo = String(parsed?.barangay_case_no ?? '').trim()
     const rawMobile = String(parsed?.mobile_number ?? '').trim()
-    const appearAt = parsed?.appear_at ? String(parsed.appear_at) : null
+    const appearAt = bodyAppearAt ?? (parsed?.appear_at ? String(parsed.appear_at) : null)
     const complainants = String(parsed?.complainants ?? '').trim()
+    const creatorRole = String(parsed?.creator_role ?? '').trim()
+
+    // Staff-created cases: no SMS (filer is lupon/staff, not a community User).
+    if (creatorRole && creatorRole !== 'User') {
+      return jsonResponse({ ok: true, skipped: 'staff_created' })
+    }
 
     if (!caseNo) throw new Error('This complaint has no case number yet.')
     if (!rawMobile) return jsonResponse({ ok: true, skipped: 'no_mobile' })

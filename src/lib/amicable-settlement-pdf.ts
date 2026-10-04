@@ -3,6 +3,7 @@ import { pdf } from '@react-pdf/renderer'
 import { AmicableSettlementPdfDocument } from '@/components/settlement/amicable-settlement-pdf-document'
 import { getAmicableSettlement } from '@/lib/amicable-settlement-api'
 import { ordinalDay } from '@/lib/pdf-dates'
+import { getLuponChairmanName } from '@/lib/positions-api'
 
 export type SettlementPdfDateParts = {
   day: string
@@ -17,6 +18,7 @@ export type AmicableSettlementPdfData = {
   respondents: string[]
   terms: string
   entered: SettlementPdfDateParts
+  luponChairmanName: string
 }
 
 function splitDateParts(value: string | null): SettlementPdfDateParts {
@@ -31,7 +33,10 @@ function splitDateParts(value: string | null): SettlementPdfDateParts {
 }
 
 export async function loadAmicableSettlementPdfData(id: number): Promise<AmicableSettlementPdfData> {
-  const record = await getAmicableSettlement(id)
+  const [record, luponChairmanName] = await Promise.all([
+    getAmicableSettlement(id),
+    getLuponChairmanName(),
+  ])
   return {
     barangayCaseNo: (record.barangay_case_no ?? '').trim(),
     complaintType: (record.complaint_type ?? '').trim(),
@@ -39,6 +44,7 @@ export async function loadAmicableSettlementPdfData(id: number): Promise<Amicabl
     respondents: record.respondents.map((name) => name.trim()).filter(Boolean),
     terms: record.terms.trim(),
     entered: splitDateParts(record.created_at),
+    luponChairmanName,
   }
 }
 

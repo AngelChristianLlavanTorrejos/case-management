@@ -214,7 +214,7 @@ export function NoticeOfExecutionPdfDocument({ data }: { data: ExecutionPdfData 
         </Text>
 
         <View style={styles.signBlock}>
-          <View style={styles.signLine} />
+          <NameLine value={data.luponChairmanName} />
           <Text style={styles.signCaption}>Punong Barangay</Text>
         </View>
 

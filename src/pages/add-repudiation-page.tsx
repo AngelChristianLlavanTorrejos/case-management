@@ -16,11 +16,13 @@ import {
   listRepudiationCases,
   type RepudiationCaseOption,
 } from '@/lib/repudiation-api'
+import { isUserRole } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 export function AddRepudiationPage() {
   const navigate = useNavigate()
   const actorUserId = useAuthStore((state) => state.session?.id)
+  const isUser = isUserRole(useAuthStore((state) => state.session?.roleName))
   const [complaintId, setComplaintId] = useState('')
   const [fraud, setFraud] = useState(false)
   const [fraudDetails, setFraudDetails] = useState('')
@@ -34,8 +36,9 @@ export function AddRepudiationPage() {
   const [saving, setSaving] = useState(false)
 
   const casesQuery = useQuery({
-    queryKey: ['repudiation-cases'],
-    queryFn: listRepudiationCases,
+    queryKey: ['repudiation-cases', actorUserId],
+    queryFn: () => listRepudiationCases(actorUserId as number),
+    enabled: Boolean(actorUserId),
   })
 
   const cases = casesQuery.data ?? []
@@ -84,7 +87,7 @@ export function AddRepudiationPage() {
       setError('Sworn date is required.')
       return
     }
-    if (!receivedOn) {
+    if (!isUser && !receivedOn) {
       setError('Received and filed date is required.')
       return
     }
@@ -101,7 +104,7 @@ export function AddRepudiationPage() {
         intimidation,
         intimidationDetails,
         swornOn,
-        receivedAndFiledOn: receivedOn,
+        receivedAndFiledOn: isUser ? null : receivedOn,
       })
       toast.success('Repudiation recorded.')
       goBack()
@@ -229,18 +232,20 @@ export function AddRepudiationPage() {
             }}
           />
         </Field>
-        <Field label="Received and filed date" htmlFor="repudiation-received" required>
-          <Input
-            id="repudiation-received"
-            type="date"
-            className="h-10 bg-white"
-            value={receivedOn}
-            onChange={(event) => {
-              setReceivedOn(event.target.value)
-              if (error) setError(null)
-            }}
-          />
-        </Field>
+        {!isUser ? (
+          <Field label="Received and filed date" htmlFor="repudiation-received" required>
+            <Input
+              id="repudiation-received"
+              type="date"
+              className="h-10 bg-white"
+              value={receivedOn}
+              onChange={(event) => {
+                setReceivedOn(event.target.value)
+                if (error) setError(null)
+              }}
+            />
+          </Field>
+        ) : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         <div className="flex gap-2">

@@ -233,7 +233,7 @@ export function NoticeOfHearingMotionPdfDocument({ data }: { data: NoticeMotionP
         </Text>
 
         <View style={styles.signBlock}>
-          <View style={styles.signLine} />
+          <NameLine value={data.luponChairmanName} />
           <Text style={styles.signCaption}>Punong Barangay/Lupon Chairman</Text>
         </View>
 

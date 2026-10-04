@@ -14,6 +14,7 @@ import {
   restrictLuponMember,
   type LuponMemberListRow,
 } from '@/lib/lupon-members-api'
+import { listAvailableLuponPositions } from '@/lib/positions-api'
 import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
@@ -39,9 +40,14 @@ export function LuponMembersPage() {
         pageSize: PAGE_SIZE,
       }),
   })
+  const availablePositionsQuery = useQuery({
+    queryKey: ['available-lupon-positions'],
+    queryFn: () => listAvailableLuponPositions(),
+  })
 
   const rows = listQuery.data?.rows ?? []
   const total = listQuery.data?.total ?? 0
+  const canAdd = (availablePositionsQuery.data?.length ?? 0) > 0
 
   useEffect(() => {
     if (listQuery.isError) {
@@ -64,6 +70,7 @@ export function LuponMembersPage() {
   async function invalidateList() {
     await queryClient.invalidateQueries({ queryKey: ['lupon-members'] })
     await queryClient.invalidateQueries({ queryKey: ['lupon-member'] })
+    await queryClient.invalidateQueries({ queryKey: ['available-lupon-positions'] })
   }
 
   async function handleRestrict(row: LuponMemberListRow) {
@@ -164,8 +171,8 @@ export function LuponMembersPage() {
         searchPlaceholder={placeholders.search_lupon}
         searchValue={search}
         onSearchChange={setSearch}
-        addLabel="Add"
-        onAdd={() => navigate('/lupon-members/add')}
+        addLabel={canAdd ? 'Add' : undefined}
+        onAdd={canAdd ? () => navigate('/lupon-members/add') : undefined}
         columns={[
           { key: 'display_name', header: 'Name', sortable: true },
           { key: 'position_name', header: 'Position', sortable: true },

@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { EnhanceButton } from '@/components/ai/enhance-button'
 import { Field } from '@/components/auth/field'
 import { IssueNoticeSummonDialog } from '@/components/complaints/issue-notice-summon-dialog'
+import { FormPageSkeleton } from '@/components/layout/form-page-skeleton'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -332,7 +333,7 @@ export function ComplainantRecordPage({ mode }: { mode: RecordMode }) {
         <Button type="button" variant="outline" className="cursor-pointer" onClick={goBack}>
           Back
         </Button>
-        <p className="mt-4 text-sm text-[#666666]">Loading complaint...</p>
+        <FormPageSkeleton fields={8} />
       </div>
     )
   }

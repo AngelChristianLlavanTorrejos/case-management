@@ -1,3 +1,4 @@
+import { notifyComplaintSms } from '@/lib/complaint-sms'
 import { supabase } from '@/lib/supabase'
 
 export type MotionCaseOption = {
@@ -64,6 +65,7 @@ export async function createMotionForExecution(
 
   const parsed = parseJson<{ id?: number }>(data)
   if (!parsed?.id) throw new Error('Motion for execution was not saved.')
+  await notifyComplaintSms('motion_for_execution_created', complaintId)
   return { id: parsed.id }
 }
 

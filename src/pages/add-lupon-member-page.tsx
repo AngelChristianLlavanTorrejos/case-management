@@ -21,13 +21,48 @@ import { toast } from '@/hooks/use-toast.tsx'
 import { getRegisterLookups, type RegisterPayload } from '@/lib/auth-api'
 import { maxAdultBirthdate, placeholders } from '@/lib/form-fields'
 import { createLuponMember } from '@/lib/lupon-members-api'
-import { listPositions } from '@/lib/positions-api'
+import { listAvailableLuponPositions } from '@/lib/positions-api'
 import { getSecuritySettings } from '@/lib/security-settings-api'
 import { createLuponMemberResolver, type LuponMemberValues } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import type { LookupOption } from '@/types/auth'
 
 type AccountTab = 'personal' | 'address' | 'contact'
+
+const TAB_ORDER: AccountTab[] = ['personal', 'address', 'contact']
+
+const tabFields: Record<AccountTab, readonly (keyof LuponMemberValues)[]> = {
+  personal: [
+    'first_name',
+    'middle_name',
+    'last_name',
+    'suffix_id',
+    'sex_id',
+    'civil_status_id',
+    'birthdate',
+    'position_id',
+    'username',
+    'password',
+    'confirm_password',
+  ],
+  address: [
+    'present_address_house_block_lot',
+    'present_address_street',
+    'present_address_barangay',
+    'present_address_municipality_city',
+    'present_address_province',
+    'present_address_region',
+    'present_address_zip_code',
+    'permanent_address_house_block_lot',
+    'permanent_address_street',
+    'permanent_address_barangay',
+    'permanent_address_municipality_city',
+    'permanent_address_province',
+    'permanent_address_region',
+    'permanent_address_zip_code',
+  ],
+  contact: ['mobile_number', 'telephone_number', 'email'],
+}
 
 const emptyValues: LuponMemberValues = {
   first_name: '',
@@ -117,8 +152,8 @@ export function AddLuponMemberPage() {
     queryFn: getRegisterLookups,
   })
   const positionsQuery = useQuery({
-    queryKey: ['positions'],
-    queryFn: listPositions,
+    queryKey: ['available-lupon-positions'],
+    queryFn: () => listAvailableLuponPositions(),
   })
   const settingsQuery = useQuery({
     queryKey: ['security-settings'],
@@ -152,6 +187,41 @@ export function AddLuponMemberPage() {
     form.setValue('permanent_address_zip_code', values.present_address_zip_code)
   }
 
+  async function changeTab(nextTab: AccountTab) {
+    const currentIndex = TAB_ORDER.indexOf(tab)
+    const nextIndex = TAB_ORDER.indexOf(nextTab)
+    if (nextIndex <= currentIndex) {
+      setTab(nextTab)
+      return
+    }
+
+    for (let index = currentIndex; index < nextIndex; index += 1) {
+      const step = TAB_ORDER[index]
+      if (step === 'address' && form.getValues('same_as_present')) {
+        copyPresentToPermanent()
+      }
+
+      const valid = await form.trigger([...tabFields[step]])
+      if (!valid) {
+        setTab(step)
+        return
+      }
+    }
+
+    setSubmitError(null)
+    setTab(nextTab)
+  }
+
+  async function goNext() {
+    const index = TAB_ORDER.indexOf(tab)
+    if (index < TAB_ORDER.length - 1) await changeTab(TAB_ORDER[index + 1])
+  }
+
+  function goPrevTab() {
+    const index = TAB_ORDER.indexOf(tab)
+    if (index > 0) setTab(TAB_ORDER[index - 1])
+  }
+
   async function handleSave() {
     const valid = await form.trigger()
     if (!valid) {
@@ -180,16 +250,35 @@ export function AddLuponMemberPage() {
     }
   }
 
-  const actions = (
-    <div className="flex gap-3">
-      <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={goBack}>
-        Cancel
-      </Button>
-      <Button type="button" className="cursor-pointer" disabled={saving} onClick={() => void handleSave()}>
-        {saving ? 'Saving…' : 'Save'}
-      </Button>
-    </div>
-  )
+  const actions =
+    tab === 'personal' ? (
+      <div className="flex gap-3">
+        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={goBack}>
+          Back
+        </Button>
+        <Button type="button" className="cursor-pointer" onClick={() => void goNext()}>
+          Next
+        </Button>
+      </div>
+    ) : tab === 'address' ? (
+      <div className="flex gap-3">
+        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={goPrevTab}>
+          Back
+        </Button>
+        <Button type="button" className="cursor-pointer" onClick={() => void goNext()}>
+          Next
+        </Button>
+      </div>
+    ) : (
+      <div className="flex gap-3">
+        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={goBack}>
+          Cancel
+        </Button>
+        <Button type="button" className="cursor-pointer" disabled={saving} onClick={() => void handleSave()}>
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+      </div>
+    )
 
   return (
     <div>
@@ -198,7 +287,13 @@ export function AddLuponMemberPage() {
         description="Create a lupon member account. Position sets Super Admin or Admin."
       />
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as AccountTab)} className="mt-5">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          void changeTab(value as AccountTab)
+        }}
+        className="mt-5"
+      >
         <TabsList>
           <TabsTrigger value="personal">Personal information</TabsTrigger>
           <TabsTrigger value="address">Address</TabsTrigger>

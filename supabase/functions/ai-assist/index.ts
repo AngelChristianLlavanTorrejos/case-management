@@ -84,7 +84,60 @@ function messageText(content: unknown) {
     .trim()
 }
 
-async function complete(system: string, user: string) {
+function asRecord(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+/** Present DB facts in plain office language so the model never echoes column names. */
+function humanizeDashboardFacts(factKey: string, fact: unknown, period: string) {
+  const periodLabel = period === 'year' ? 'this year' : 'this month'
+
+  if (typeof fact === 'number') {
+    return {
+      topic: 'Complaints filed',
+      period: periodLabel,
+      count: fact,
+    }
+  }
+
+  const record = asRecord(fact)
+  if (!record) return { topic: factKey, details: fact }
+
+  if (factKey === 'mix') {
+    return {
+      topic: 'Settlement outcomes',
+      period: record.period === 'year' ? 'this year' : 'this month',
+      settledCount: Number(record.complied ?? 0),
+      repudiatedCount: Number(record.repudiated ?? 0),
+      inExecutionCount: Number(record.in_execution ?? 0),
+    }
+  }
+
+  const caseNumbers = Array.isArray(record.case_nos)
+    ? record.case_nos.map((item) => String(item))
+    : []
+  const total = Number(record.total ?? caseNumbers.length)
+
+  const topics: Record<string, string> = {
+    notice_deadline_missed: 'Cases that missed the 3-day notice or summon deadline',
+    summons_unserved: 'Summons not yet served',
+    repudiation_window: 'Settlements still inside the 10-day repudiation window',
+    motion_for_execution_ready: 'Settlements ready for a motion for execution',
+    notice_of_execution_due: 'Cases due for a notice of execution',
+  }
+
+  return {
+    topic: topics[factKey] ?? 'Dashboard result',
+    period: periodLabel,
+    totalCount: total,
+    barangayCaseNumbersListed: caseNumbers,
+    additionalCasesNotListed: Math.max(0, total - caseNumbers.length),
+  }
+}
+
+async function complete(system: string, user: string, maxCompletionTokens = 220) {
   const apiKey = Deno.env.get('OPENAI_API_KEY')
   if (!apiKey) throw new Error('AI is not configured.')
 
@@ -100,7 +153,7 @@ async function complete(system: string, user: string) {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      max_completion_tokens: 220,
+      max_completion_tokens: maxCompletionTokens,
       reasoning_effort: 'minimal',
     }),
   })
@@ -163,9 +216,23 @@ Deno.serve(async (req) => {
       const fact = facts?.[factKey]
       if (fact == null) throw new Error('Unable to load dashboard facts.')
 
+      const humanFacts = humanizeDashboardFacts(factKey, fact, period)
       const text = await complete(
-        'You answer barangay case dashboard questions for Tanza 1. Use only the JSON facts. Do not invent case numbers or counts. If a list total is 0, say there are none. If case_nos is shorter than total, mention how many more are not listed. Keep the answer short and plain. Do not give legal advice.',
-        `Question: ${question}\nFacts: ${JSON.stringify(fact)}`,
+        [
+          'You write a formal barangay case dashboard report for Barangay Tanza 1 (Tanza Resolve).',
+          'Use ONLY the provided facts object. Every count and barangay case number must come from those facts.',
+          'Do not invent, estimate, or omit numbers that appear in the facts.',
+          'Write for barangay staff in plain, professional English. Never mention JSON, databases, APIs, field names, snake_case keys, or programming terms.',
+          'Say "barangay case number" or "case number", never case_no, case_nos, totalCount, or similar labels.',
+          'When listing cases, write them as ordinary case numbers in a readable sentence or short list.',
+          'If totalCount is 0, say clearly that there are none for that topic.',
+          'If additionalCasesNotListed is greater than 0, say that more cases exist beyond those listed.',
+          'Format as a brief formal report with these plain section headings on their own lines: Summary, Findings, Notes.',
+          'Do not use markdown, asterisks, hash headings, or code formatting. Leave a blank line between sections.',
+          'Do not give legal advice.',
+        ].join(' '),
+        `Question: ${question}\nReporting period: ${period === 'year' ? 'this year' : 'this month'}\nFacts: ${JSON.stringify(humanFacts)}`,
+        700,
       )
       return jsonResponse({ text })
     }

@@ -5,6 +5,7 @@ import { Controller, useForm, type FieldErrors, type UseFormReturn } from 'react
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { Field } from '@/components/auth/field'
+import { FormPageSkeleton } from '@/components/layout/form-page-skeleton'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,7 +28,7 @@ import {
 } from '@/lib/community-members-api'
 import { formatStatusLabel, maxAdultBirthdate, placeholders } from '@/lib/form-fields'
 import { getLuponMember, updateLuponMember, type LuponMember } from '@/lib/lupon-members-api'
-import { listPositions } from '@/lib/positions-api'
+import { listAvailableLuponPositions, listPositions } from '@/lib/positions-api'
 import { getTechnicalSupport, updateTechnicalSupport, type TechnicalSupport } from '@/lib/technical-support-api'
 import { luponMemberEditSchema, type LuponMemberEditValues } from '@/schemas/auth'
 import { useAuthStore } from '@/stores/auth-store'
@@ -36,6 +37,38 @@ import type { LookupOption } from '@/types/auth'
 export type StaffAccountKind = 'community' | 'lupon' | 'technical'
 export type StaffAccountMode = 'view' | 'edit'
 type AccountTab = 'personal' | 'address' | 'contact'
+
+const TAB_ORDER: AccountTab[] = ['personal', 'address', 'contact']
+
+const tabFields: Record<AccountTab, readonly (keyof LuponMemberEditValues)[]> = {
+  personal: [
+    'first_name',
+    'middle_name',
+    'last_name',
+    'suffix_id',
+    'sex_id',
+    'civil_status_id',
+    'birthdate',
+    'position_id',
+  ],
+  address: [
+    'present_address_house_block_lot',
+    'present_address_street',
+    'present_address_barangay',
+    'present_address_municipality_city',
+    'present_address_province',
+    'present_address_region',
+    'present_address_zip_code',
+    'permanent_address_house_block_lot',
+    'permanent_address_street',
+    'permanent_address_barangay',
+    'permanent_address_municipality_city',
+    'permanent_address_province',
+    'permanent_address_region',
+    'permanent_address_zip_code',
+  ],
+  contact: ['mobile_number', 'telephone_number', 'email'],
+}
 
 type StaffProfile = (CommunityMember | LuponMember | TechnicalSupport) & {
   role_name?: string
@@ -234,9 +267,10 @@ export function StaffAccountRecordPage({
     queryFn: getRegisterLookups,
   })
   const positionsQuery = useQuery({
-    queryKey: ['positions'],
-    queryFn: listPositions,
-    enabled: config.showPosition,
+    queryKey: kind === 'lupon' ? ['available-lupon-positions', memberId] : ['positions'],
+    queryFn: () =>
+      kind === 'lupon' ? listAvailableLuponPositions(memberId) : listPositions(),
+    enabled: config.showPosition && (kind !== 'lupon' || (Number.isFinite(memberId) && memberId > 0)),
   })
 
   const form = useForm<LuponMemberEditValues>({
@@ -256,6 +290,51 @@ export function StaffAccountRecordPage({
 
   function goBack() {
     navigate(config.listPath)
+  }
+
+  function fieldsForTab(step: AccountTab) {
+    if (kind === 'lupon' || step !== 'personal') return tabFields[step]
+    return tabFields.personal.filter((field) => field !== 'position_id')
+  }
+
+  async function changeTab(nextTab: AccountTab) {
+    if (readOnly) {
+      setTab(nextTab)
+      return
+    }
+
+    const currentIndex = TAB_ORDER.indexOf(tab)
+    const nextIndex = TAB_ORDER.indexOf(nextTab)
+    if (nextIndex <= currentIndex) {
+      setTab(nextTab)
+      return
+    }
+
+    for (let index = currentIndex; index < nextIndex; index += 1) {
+      const step = TAB_ORDER[index]
+      if (step === 'address' && form.getValues('same_as_present')) {
+        copyPresentToPermanent()
+      }
+
+      const valid = await form.trigger([...fieldsForTab(step)])
+      if (!valid) {
+        setTab(step)
+        return
+      }
+    }
+
+    setSubmitError(null)
+    setTab(nextTab)
+  }
+
+  async function goNext() {
+    const index = TAB_ORDER.indexOf(tab)
+    if (index < TAB_ORDER.length - 1) await changeTab(TAB_ORDER[index + 1])
+  }
+
+  function goPrevTab() {
+    const index = TAB_ORDER.indexOf(tab)
+    if (index > 0) setTab(TAB_ORDER[index - 1])
   }
 
   function copyPresentToPermanent() {
@@ -313,9 +392,12 @@ export function StaffAccountRecordPage({
 
   const actions = (
     <TabActions
+      tab={tab}
       readOnly={readOnly}
       saving={saving}
-      onBack={goBack}
+      onCancel={goBack}
+      onBack={goPrevTab}
+      onNext={() => void goNext()}
       onSave={() => void handleSave()}
     />
   )
@@ -331,9 +413,15 @@ export function StaffAccountRecordPage({
           {memberQuery.error instanceof Error ? memberQuery.error.message : 'Unable to load profile.'}
         </p>
       ) : memberQuery.isLoading || !profile ? (
-        <p className="mt-5 text-sm text-[#666666]">Loading profile...</p>
+        <FormPageSkeleton fields={8} />
       ) : (
-        <Tabs value={tab} onValueChange={(value) => setTab(value as AccountTab)} className="mt-5">
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            void changeTab(value as AccountTab)
+          }}
+          className="mt-5"
+        >
           <TabsList>
             <TabsTrigger value="personal">Personal information</TabsTrigger>
             <TabsTrigger value="address">Address</TabsTrigger>
@@ -553,21 +641,53 @@ export function StaffAccountRecordPage({
 }
 
 function TabActions({
+  tab,
   readOnly,
   saving,
+  onCancel,
   onBack,
+  onNext,
   onSave,
 }: {
+  tab: AccountTab
   readOnly: boolean
   saving: boolean
+  onCancel: () => void
   onBack: () => void
+  onNext: () => void
   onSave: () => void
 }) {
   if (readOnly) {
     return (
       <div>
+        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onCancel}>
+          Back
+        </Button>
+      </div>
+    )
+  }
+
+  if (tab === 'personal') {
+    return (
+      <div className="flex gap-3">
+        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onCancel}>
+          Back
+        </Button>
+        <Button type="button" className="cursor-pointer" onClick={onNext}>
+          Next
+        </Button>
+      </div>
+    )
+  }
+
+  if (tab === 'address') {
+    return (
+      <div className="flex gap-3">
         <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onBack}>
           Back
+        </Button>
+        <Button type="button" className="cursor-pointer" onClick={onNext}>
+          Next
         </Button>
       </div>
     )
@@ -575,7 +695,7 @@ function TabActions({
 
   return (
     <div className="flex gap-3">
-      <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onBack}>
+      <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onCancel}>
         Cancel
       </Button>
       <Button type="button" className="cursor-pointer" disabled={saving} onClick={onSave}>

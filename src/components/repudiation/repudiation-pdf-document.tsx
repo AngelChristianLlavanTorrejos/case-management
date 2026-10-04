@@ -270,7 +270,7 @@ export function RepudiationPdfDocument({ data }: { data: RepudiationPdfData }) {
 
       <Page size="A4" style={styles.page}>
         <View style={styles.chairBlock}>
-          <View style={styles.signLine} />
+          <NameLine value={data.receivedAndFiledByName} />
           <Text style={styles.signCaption}>Punong Barangay/Pangkat Chairman/Member</Text>
         </View>
 
@@ -279,7 +279,7 @@ export function RepudiationPdfDocument({ data }: { data: RepudiationPdfData }) {
         </Text>
 
         <View style={styles.chairBlock}>
-          <View style={styles.signLine} />
+          <NameLine value={data.luponChairmanName} />
           <Text style={styles.signCaption}>Punong Barangay</Text>
         </View>
 

@@ -223,7 +223,7 @@ export function AmicableSettlementPdfDocument({ data }: { data: AmicableSettleme
           </Text>
 
           <View style={styles.chairBlock}>
-            <View style={styles.signLine} />
+            <NameLine value={data.luponChairmanName} />
             <Text style={styles.signCaption}>Punong Barangay/Pangkat Chairman</Text>
           </View>
         </View>

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Controller, useForm, type UseFormReturn } from 'react-hook-form'
 
 import { Field } from '@/components/auth/field'
+import { FormPageSkeleton } from '@/components/layout/form-page-skeleton'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -305,7 +306,7 @@ export function MyProfilePage() {
           {profileQuery.error instanceof Error ? profileQuery.error.message : 'Unable to load profile.'}
         </p>
       ) : profileQuery.isLoading || !profile ? (
-        <p className="mt-5 text-sm text-[#666666]">Loading profile...</p>
+        <FormPageSkeleton fields={8} />
       ) : (
         <Tabs defaultValue="personal" className="mt-5">
           <TabsList>

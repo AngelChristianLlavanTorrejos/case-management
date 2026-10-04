@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { useAnyDialogOpen } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   formatNotificationWhen,
   listNotifications,
@@ -139,7 +140,14 @@ export function NotificationBell() {
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {notifications.isLoading ? (
-              <p className="px-3 py-6 text-sm text-muted-foreground">Loading notifications…</p>
+              <div className="space-y-3 px-3 py-3">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div key={index} className="grid gap-2">
+                    <Skeleton className="h-3 w-40" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                ))}
+              </div>
             ) : notifications.isError ? (
               <p className="px-3 py-6 text-sm text-muted-foreground">
                 Notifications could not be loaded.

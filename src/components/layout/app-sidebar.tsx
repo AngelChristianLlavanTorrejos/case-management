@@ -7,7 +7,7 @@ import { SidebarNav } from '@/components/layout/sidebar-nav'
 import { IconInput } from '@/components/ui/icon-input'
 import { logoutUser, getUserProfile } from '@/lib/auth-api'
 import { filterMenuTree, getActiveMenus } from '@/lib/menu-api'
-import { canAccessDashboard, isSuperAdmin } from '@/lib/roles'
+import { canAccessDashboard, isSuperAdmin, isUserRole } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUiStore } from '@/stores/ui-store'
@@ -18,8 +18,25 @@ function menusForRole(nodes: MenuNode[], roleName: string | null | undefined): M
     if (!canAccessDashboard(roleName) && (item.name === 'Dashboard' || item.path === '/')) return []
     if (!isSuperAdmin(roleName) && isSuperAdminModule(item)) return []
     if (!canAccessDashboard(roleName) && item.path === '/summon-for-the-respondent') return []
+    if (isUserRole(roleName) && isStaffOnlySettlementModule(item)) return []
     return [{ ...item, children: menusForRole(item.children, roleName) }]
   })
+}
+
+function isStaffOnlySettlementModule(item: MenuNode) {
+  const path = item.path ?? ''
+  return (
+    path === '/amicable-settlement' ||
+    path.startsWith('/amicable-settlement/') ||
+    path === '/certificate-to-file-action' ||
+    path.startsWith('/certificate-to-file-action/') ||
+    path === '/motion-for-execution' ||
+    path.startsWith('/motion-for-execution/') ||
+    path === '/notice-of-hearing-motion' ||
+    path.startsWith('/notice-of-hearing-motion/') ||
+    path === '/notice-of-execution' ||
+    path.startsWith('/notice-of-execution/')
+  )
 }
 
 function isSuperAdminModule(item: MenuNode) {
