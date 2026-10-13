@@ -406,7 +406,7 @@ begin
 
   perform public.write_user_activity_log(
     p_actor_user_id,
-    'update',
+    'edit',
     public.menu_id_by_path('/repudiation'),
     format('%s marked repudiation as received and filed (%s).', v_actor_name, coalesce(v_case_no, '—')),
     jsonb_build_object(

@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 const IPROG_SMS_URL = 'https://www.iprogsms.com/api/v1/sms_messages'
+const IPROG_SMS_BULK_URL = 'https://www.iprogsms.com/api/v1/sms_messages/send_bulk'
 
 const DUAL_PARTY_KINDS = new Set([
   'repudiation_filed',
@@ -35,6 +36,16 @@ function normalizePhMobile(raw: string) {
   if (digits.startsWith('639') && digits.length === 12) return `0${digits.slice(2)}`
   if (digits.startsWith('9') && digits.length === 10) return `0${digits}`
   throw new Error('The filer has no valid mobile number.')
+}
+
+function tryNormalizeMobile(raw: unknown): string | null {
+  const value = String(raw ?? '').trim()
+  if (!value) return null
+  try {
+    return normalizePhMobile(value)
+  } catch {
+    return null
+  }
 }
 
 function iprogToken() {
@@ -94,7 +105,7 @@ function buildMessage(kind: string, caseNo: string, appearAt: string | null, com
   }
 
   if (kind === 'repudiation_filed') {
-    return `Tanza 1: A repudiation was filed for case ${caseNo}. It is pending Received and Filed.`
+    return `Tanza 1: A repudiation was filed for case ${caseNo}. It is not yet Received and Filed. Barangay staff will process it.`
   }
 
   if (kind === 'repudiation_received_and_filed') {
@@ -153,16 +164,42 @@ function createAnonClient(req: Request) {
   })
 }
 
-async function iprogSend(phoneNumber: string, message: string) {
+function parseRpcJson(data: unknown): Record<string, unknown> | null {
+  if (data == null) return null
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data) as Record<string, unknown>
+    } catch {
+      throw new Error('Unable to read notification details.')
+    }
+  }
+  if (typeof data === 'object') return data as Record<string, unknown>
+  throw new Error('Unable to read notification details.')
+}
+
+function iprogAccepted(parsed: Record<string, unknown>, responseOk: boolean) {
+  if (parsed.message_id != null || parsed.message_ids != null) return true
+
+  const status = parsed.status
+  if (status === 'success' || status === 200 || status === '200') return true
+
+  const statusNumber = typeof status === 'number' ? status : Number(status)
+  const failedStatus =
+    status === 'error' ||
+    status === 'failed' ||
+    status === false ||
+    (Number.isFinite(statusNumber) && statusNumber >= 400)
+
+  return responseOk && !failedStatus
+}
+
+/** Body-only POST — putting message in the query string can trigger provider 500s. */
+async function iprogPost(url: string, phoneNumber: string, message: string) {
   const payload = {
     api_token: iprogToken(),
     phone_number: phoneNumber,
     message,
   }
-  const url = new URL(IPROG_SMS_URL)
-  url.searchParams.set('api_token', payload.api_token)
-  url.searchParams.set('phone_number', payload.phone_number)
-  url.searchParams.set('message', payload.message)
 
   const response = await fetch(url, {
     method: 'POST',
@@ -178,15 +215,62 @@ async function iprogSend(phoneNumber: string, message: string) {
   try {
     parsed = text ? (JSON.parse(text) as Record<string, unknown>) : {}
   } catch {
-    throw new Error('Unable to reach the SMS provider.')
+    const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 180)
+    throw new Error(
+      snippet
+        ? `Unable to reach the SMS provider (${response.status}): ${snippet}`
+        : `Unable to reach the SMS provider (${response.status}).`,
+    )
   }
 
-  const status = parsed.status
-  const ok = status === 'success' || status === 200 || status === '200'
-  if (!response.ok || !ok) {
-    const errorMessage = typeof parsed.message === 'string' ? parsed.message : 'Unable to send SMS.'
-    throw new Error(errorMessage)
+  if (iprogAccepted(parsed, response.ok)) return parsed
+
+  const bodyStatus = parsed.status
+  const errorMessage =
+    typeof parsed.message === 'string' && parsed.message.trim()
+      ? parsed.message
+      : `Unable to send SMS (${bodyStatus ?? response.status}).`
+  throw new Error(errorMessage)
+}
+
+async function iprogSend(phoneNumber: string, message: string) {
+  await iprogPost(IPROG_SMS_URL, phoneNumber, message)
+}
+
+async function iprogSendBulk(phoneNumbers: string[], message: string) {
+  if (phoneNumbers.length === 0) return
+  if (phoneNumbers.length === 1) {
+    await iprogSend(phoneNumbers[0], message)
+    return
   }
+  await iprogPost(IPROG_SMS_BULK_URL, phoneNumbers.join(','), message)
+}
+
+function collectDualPartyMobiles(parsed: Record<string, unknown>) {
+  const byMobile = new Map<string, Set<string>>()
+
+  const add = (role: string, raw: unknown) => {
+    const mobile = tryNormalizeMobile(raw)
+    if (!mobile) return
+    const roles = byMobile.get(mobile) ?? new Set<string>()
+    roles.add(role)
+    byMobile.set(mobile, roles)
+  }
+
+  add('complainant', parsed.complainant_mobile)
+  add('respondent', parsed.respondent_mobile)
+
+  if (byMobile.size === 0 && Array.isArray(parsed.recipients)) {
+    for (const item of parsed.recipients as Array<{ role?: string; mobile_number?: string }>) {
+      const role = item?.role === 'respondent' ? 'respondent' : 'complainant'
+      add(role, item?.mobile_number)
+    }
+  }
+
+  return [...byMobile.entries()].map(([mobile, roles]) => ({
+    mobile,
+    roles: [...roles],
+  }))
 }
 
 async function sendDualPartySms(
@@ -200,34 +284,83 @@ async function sendDualPartySms(
   })
   if (info.error) throw new Error(rpcErrorMessage(info.error.message))
 
-  const parsed =
-    typeof info.data === 'string' ? JSON.parse(info.data) : (info.data as Record<string, unknown> | null)
+  const parsed = parseRpcJson(info.data)
   const caseNo = String(parsed?.barangay_case_no ?? '').trim()
   const creatorRole = String(parsed?.creator_role ?? '').trim()
-  const recipients = Array.isArray(parsed?.recipients)
-    ? (parsed.recipients as Array<{ mobile_number?: string }>)
-    : []
+  const respondentUserId = parsed?.respondent_user_id
+  const respondentLinked = respondentUserId != null && String(respondentUserId).trim() !== ''
+  const respondentMobile = tryNormalizeMobile(parsed?.respondent_mobile)
 
   if (creatorRole && creatorRole !== 'User') {
     return jsonResponse({ ok: true, skipped: 'staff_created' })
   }
   if (!caseNo) throw new Error('This complaint has no case number yet.')
 
-  const mobiles = [
-    ...new Set(
-      recipients
-        .map((item) => String(item?.mobile_number ?? '').trim())
-        .filter(Boolean)
-        .map((raw) => normalizePhMobile(raw)),
-    ),
-  ]
-  if (mobiles.length === 0) return jsonResponse({ ok: true, skipped: 'no_mobile' })
+  const recipients = collectDualPartyMobiles(parsed ?? {})
+  if (recipients.length === 0) {
+    return jsonResponse({
+      ok: true,
+      skipped: 'no_mobile',
+      respondent_linked: respondentLinked,
+    })
+  }
 
   const message = buildMessage(kind, caseNo, appearAt, '')
-  for (const mobile of mobiles) {
-    await iprogSend(mobile, message)
+  const mobiles = recipients.map((item) => item.mobile)
+  const sentRoles = [...new Set(recipients.flatMap((item) => item.roles))]
+  const sameMobile = recipients.length === 1 && sentRoles.length > 1
+
+  try {
+    await iprogSendBulk(mobiles, message)
+    return jsonResponse({
+      ok: true,
+      sent: mobiles.length,
+      sent_roles: sentRoles,
+      distinct_numbers: mobiles.length,
+      same_mobile: sameMobile,
+      respondent_linked: respondentLinked,
+      respondent_has_mobile: Boolean(respondentMobile),
+    })
+  } catch (bulkError) {
+    let sent = 0
+    const failures: string[] = []
+
+    for (const recipient of recipients) {
+      try {
+        await iprogSend(recipient.mobile, message)
+        sent += 1
+      } catch (error) {
+        failures.push(
+          `${recipient.roles.join('/')}: ${
+            error instanceof Error ? error.message : 'Unable to send SMS.'
+          }`,
+        )
+      }
+    }
+
+    if (sent === 0) {
+      throw new Error(
+        failures[0] ||
+          (bulkError instanceof Error ? bulkError.message : 'Unable to send SMS.'),
+      )
+    }
+
+    const body: Record<string, unknown> = {
+      ok: true,
+      sent,
+      sent_roles: sentRoles,
+      distinct_numbers: sent,
+      same_mobile: sameMobile,
+      respondent_linked: respondentLinked,
+      respondent_has_mobile: Boolean(respondentMobile),
+    }
+    if (failures.length > 0) {
+      body.partial = true
+      body.failed = failures.length
+      body.error = failures[0]
+    }
+    return jsonResponse(body)
   }
-  return jsonResponse({ ok: true, sent: mobiles.length })
 }
 
 Deno.serve(async (req) => {
@@ -258,15 +391,13 @@ Deno.serve(async (req) => {
     const info = await supabase.rpc('get_complaint_notify_info', { p_id: complaintId })
     if (info.error) throw new Error(rpcErrorMessage(info.error.message))
 
-    const parsed =
-      typeof info.data === 'string' ? JSON.parse(info.data) : (info.data as Record<string, unknown> | null)
+    const parsed = parseRpcJson(info.data)
     const caseNo = String(parsed?.barangay_case_no ?? '').trim()
     const rawMobile = String(parsed?.mobile_number ?? '').trim()
     const appearAt = bodyAppearAt ?? (parsed?.appear_at ? String(parsed.appear_at) : null)
     const complainants = String(parsed?.complainants ?? '').trim()
     const creatorRole = String(parsed?.creator_role ?? '').trim()
 
-    // Staff-created cases: no SMS (filer is lupon/staff, not a community User).
     if (creatorRole && creatorRole !== 'User') {
       return jsonResponse({ ok: true, skipped: 'staff_created' })
     }

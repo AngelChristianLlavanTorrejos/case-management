@@ -23,13 +23,18 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/hooks/use-toast.tsx'
-import { createAndLinkCaseRespondent } from '@/lib/amicable-settlement-api'
+import {
+  createAndLinkCaseRespondent,
+  linkExistingCaseRespondent,
+  listLinkableCaseRespondents,
+} from '@/lib/amicable-settlement-api'
 import { getRegisterLookups, type RegisterPayload } from '@/lib/auth-api'
 import { maxAdultBirthdate, placeholders } from '@/lib/form-fields'
 import { getSecuritySettings } from '@/lib/security-settings-api'
 import { createRegisterResolver, type RegisterValues } from '@/schemas/auth'
 import type { LookupOption } from '@/types/auth'
 
+type Mode = 'choose' | 'create' | 'link'
 type AccountTab = 'personal' | 'address' | 'contact'
 
 const TAB_ORDER: AccountTab[] = ['personal', 'address', 'contact']
@@ -159,20 +164,27 @@ export function CreateCaseRespondentDialog({
   onClose: () => void
   onCreated: () => Promise<void>
 }) {
+  const [mode, setMode] = useState<Mode>('choose')
   const [tab, setTab] = useState<AccountTab>('personal')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState('')
   const settingsRef = useRef<Awaited<ReturnType<typeof getSecuritySettings>> | null>(null)
 
   const lookups = useQuery({
     queryKey: ['register-lookups'],
     queryFn: getRegisterLookups,
-    enabled: open,
+    enabled: open && mode === 'create',
   })
   const settingsQuery = useQuery({
     queryKey: ['security-settings'],
     queryFn: getSecuritySettings,
-    enabled: open,
+    enabled: open && mode === 'create',
+  })
+  const linkableQuery = useQuery({
+    queryKey: ['linkable-case-respondents', complaintId, actorUserId],
+    queryFn: () => listLinkableCaseRespondents(complaintId!, actorUserId!),
+    enabled: open && mode === 'link' && complaintId != null && actorUserId != null,
   })
 
   useEffect(() => {
@@ -186,13 +198,16 @@ export function CreateCaseRespondentDialog({
   })
 
   const sameAsPresent = form.watch('same_as_present')
+  const linkableAccounts = linkableQuery.data ?? []
 
   useEffect(() => {
     if (!open) {
       form.reset(emptyValues)
+      setMode('choose')
       setTab('personal')
       setSubmitError(null)
       setSaving(false)
+      setSelectedUserId('')
     }
   }, [open, form])
 
@@ -277,11 +292,50 @@ export function CreateCaseRespondentDialog({
     }
   }
 
+  async function handleLinkExisting() {
+    if (!actorUserId) {
+      setSubmitError('You must be signed in.')
+      return
+    }
+    if (!complaintId) {
+      setSubmitError('Complaint is required.')
+      return
+    }
+    if (!selectedUserId) {
+      setSubmitError('Select an existing account.')
+      return
+    }
+
+    setSubmitError(null)
+    setSaving(true)
+    try {
+      await linkExistingCaseRespondent(complaintId, actorUserId, Number(selectedUserId))
+      await onCreated()
+      toast.success('Existing account linked as respondent for this case.')
+      onClose()
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Unable to link the respondent account.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function goBackToChoose() {
+    setSubmitError(null)
+    setSaving(false)
+    setSelectedUserId('')
+    setTab('personal')
+    form.reset(emptyValues)
+    setMode('choose')
+  }
+
   const actions =
     tab === 'personal' ? (
       <div className="flex gap-3">
-        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onClose}>
-          Later
+        <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={goBackToChoose}>
+          Back
         </Button>
         <Button type="button" className="cursor-pointer" onClick={() => void goNext()}>
           Next
@@ -311,14 +365,112 @@ export function CreateCaseRespondentDialog({
     <Dialog open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create respondent account</DialogTitle>
+          <DialogTitle>
+            {mode === 'choose'
+              ? 'Respondent account'
+              : mode === 'link'
+                ? 'Link existing account'
+                : 'Create respondent account'}
+          </DialogTitle>
           <DialogDescription>
-            This community-filed case needs a linked respondent User account
-            {caseLabel ? ` for ${caseLabel}` : ''}. You can finish this later from the settlement list if
-            needed.
+            {mode === 'choose'
+              ? `This community-filed case needs a linked respondent User account${caseLabel ? ` for ${caseLabel}` : ''}. Create a new account or link an existing one.`
+              : mode === 'link'
+                ? `Choose an active community account to link as the respondent${caseLabel ? ` for ${caseLabel}` : ''}.`
+                : `Create a new respondent User account${caseLabel ? ` for ${caseLabel}` : ''}.`}
           </DialogDescription>
         </DialogHeader>
 
+        {mode === 'choose' ? (
+          <div className="grid gap-3">
+            <Button
+              type="button"
+              className="cursor-pointer"
+              onClick={() => {
+                setSubmitError(null)
+                setMode('create')
+              }}
+            >
+              Create a respondent account
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer bg-white"
+              onClick={() => {
+                setSubmitError(null)
+                setMode('link')
+              }}
+            >
+              Link existing account
+            </Button>
+            <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={onClose}>
+              Later
+            </Button>
+          </div>
+        ) : null}
+
+        {mode === 'link' ? (
+          <div className="grid gap-4">
+            <Field
+              label="Existing account"
+              htmlFor="link-respondent-account"
+              required
+              error={submitError && !selectedUserId ? submitError : undefined}
+            >
+              <Select
+                value={selectedUserId || undefined}
+                onValueChange={(value) => {
+                  setSelectedUserId(value)
+                  if (submitError) setSubmitError(null)
+                }}
+              >
+                <SelectTrigger id="link-respondent-account" className="h-10 w-full bg-white">
+                  <SelectValue
+                    placeholder={
+                      linkableQuery.isLoading
+                        ? 'Loading accounts…'
+                        : linkableAccounts.length === 0
+                          ? 'No linkable accounts found'
+                          : 'Select account'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start" className="w-(--radix-select-trigger-width)">
+                  {linkableAccounts.map((account) => (
+                    <SelectItem key={account.id} value={String(account.id)}>
+                      {account.display_name} ({account.username})
+                      {account.mobile_number ? ` · ${account.mobile_number}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {submitError && selectedUserId ? <p className="text-sm text-destructive">{submitError}</p> : null}
+            {linkableQuery.isError ? (
+              <p className="text-sm text-destructive">
+                {linkableQuery.error instanceof Error
+                  ? linkableQuery.error.message
+                  : 'Unable to load accounts.'}
+              </p>
+            ) : null}
+            <div className="flex gap-3">
+              <Button type="button" variant="outline" className="cursor-pointer bg-white" onClick={goBackToChoose}>
+                Back
+              </Button>
+              <Button
+                type="button"
+                className="cursor-pointer"
+                disabled={saving || !selectedUserId}
+                onClick={() => void handleLinkExisting()}
+              >
+                {saving ? 'Linking…' : 'Link account'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {mode === 'create' ? (
         <Tabs
           value={tab}
           onValueChange={(value) => {
@@ -495,6 +647,7 @@ export function CreateCaseRespondentDialog({
             </div>
           </TabsContent>
         </Tabs>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

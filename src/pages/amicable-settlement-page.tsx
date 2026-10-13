@@ -117,9 +117,12 @@ export function AmicableSettlementPage() {
 
   const actions: PageContentAction<AmicableSettlementListRow>[] = [
     {
-      label: 'Create respondent account',
+      label: 'Respondent account',
       icon: UserPlus,
-      hidden: (row) => !row.requires_respondent_account,
+      hidden: (row) =>
+        !row.requires_respondent_account ||
+        row.status === 'settled' ||
+        row.is_settled,
       onSelect: (row) => {
         setRespondentComplaintId(row.complaint_id)
         setRespondentCaseLabel(row.barangay_case_no)

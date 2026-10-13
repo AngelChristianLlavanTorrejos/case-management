@@ -248,12 +248,40 @@ Deno.serve(async (req) => {
         throw new Error('Shorten the text to 1500 characters before enhancing.')
       }
 
-      const voice = field === 'settlement_terms'
-        ? 'Write the settlement terms directly. Do not narrate them as "the complainant requests."'
-        : 'Write in the first person, as the complainant filling out the form. Use I or we, matching the draft. Never say "the complainant" or describe them from the outside.'
+      const languageRules = [
+        'Keep the exact same language mix as the draft.',
+        'If the draft is English, return English.',
+        'If the draft is Tagalog/Filipino, return Tagalog/Filipino.',
+        'If the draft is Taglish (mixed Tagalog and English), return Taglish.',
+        'Never translate the draft into another language.',
+      ].join(' ')
+
+      let voice: string
+      if (field === 'settlement_terms') {
+        voice =
+          'Write the settlement terms directly. Do not narrate them as "the complainant requests."'
+      } else if (field === 'relief') {
+        voice = [
+          'Write the relief prayer itself in the first person, as the complainant filling out "THEREFORE, I/WE pray…".',
+          'Improve clarity and formality, but keep it as the requested relief/s, not a story of what happened.',
+          'Use I or we only if the draft already does; otherwise keep prayer style such as "That the respondent…".',
+          'Never say "the complainant" or describe them from the outside.',
+        ].join(' ')
+      } else {
+        voice =
+          'Write in the first person, as the complainant filling out the form. Use I or we, matching the draft. Never say "the complainant" or describe them from the outside.'
+      }
 
       const text = await complete(
-        `Improve this draft into one clearer paragraph about ${purpose}. ${voice} Use the same language as the draft, English or Filipino. Keep every name, date, place, and amount unchanged. Do not add facts. Do not copy the draft word for word. Return only the improved paragraph.`,
+        [
+          `Improve this draft into one clearer paragraph about ${purpose}.`,
+          voice,
+          languageRules,
+          'Keep every name, date, place, and amount unchanged.',
+          'Do not add facts.',
+          'Do not copy the draft word for word.',
+          'Return only the improved paragraph.',
+        ].join(' '),
         draft,
       )
       return jsonResponse({ text })

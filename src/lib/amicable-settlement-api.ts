@@ -111,6 +111,46 @@ export async function createAmicableSettlement(
   return result
 }
 
+export type LinkableCaseRespondentOption = {
+  id: number
+  display_name: string
+  username: string
+  mobile_number: string
+}
+
+export async function listLinkableCaseRespondents(
+  complaintId: number,
+  actorUserId: number,
+  search = '',
+): Promise<LinkableCaseRespondentOption[]> {
+  const { data, error } = await supabase.rpc('list_linkable_case_respondents', {
+    p_complaint_id: complaintId,
+    p_actor_user_id: actorUserId,
+    p_search: search,
+  })
+  if (error) throw rpcError(error.message)
+
+  const parsed = parseJson<LinkableCaseRespondentOption[]>(data)
+  return parsed ?? []
+}
+
+export async function linkExistingCaseRespondent(
+  complaintId: number,
+  actorUserId: number,
+  userId: number,
+): Promise<{ id: number }> {
+  const { data, error } = await supabase.rpc('link_existing_case_respondent', {
+    p_complaint_id: complaintId,
+    p_actor_user_id: actorUserId,
+    p_user_id: userId,
+  })
+  if (error) throw rpcError(error.message)
+
+  const parsed = parseJson<{ id?: number }>(data)
+  if (!parsed?.id) throw new Error('Respondent account was not linked.')
+  return { id: parsed.id }
+}
+
 export async function createAndLinkCaseRespondent(
   complaintId: number,
   actorUserId: number,
