@@ -1,5 +1,6 @@
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 
+import { PdfReportHeaderImage } from '@/components/pdf/pdf-report-header'
 import type { MotionPdfData, MotionPdfDateParts } from '@/lib/motion-for-execution-pdf'
 
 Font.registerHyphenationCallback((word) => [word])
@@ -14,11 +15,6 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: 48,
     paddingHorizontal: 54,
-  },
-  header: {
-    textAlign: 'center',
-    fontSize: 11,
-    lineHeight: 1.35,
   },
   office: {
     textAlign: 'center',
@@ -132,10 +128,7 @@ export function MotionForExecutionPdfDocument({ data }: { data: MotionPdfData })
   return (
     <Document title={`Motion for Execution ${data.barangayCaseNo || ''}`.trim()} author="Barangay Tanza 1">
       <Page size="A4" style={styles.page}>
-        <Text style={styles.header}>Republic of the Philippines</Text>
-        <Text style={styles.header}>Province of Metro Manila</Text>
-        <Text style={styles.header}>CITY/MUNICIPALITY OF NAVOTAS</Text>
-        <Text style={styles.header}>Barangay Tanza 1</Text>
+        <PdfReportHeaderImage />
         <Text style={styles.office}>OFFICE OF THE LUPONG TAGAPAMAYAPA</Text>
 
         <View style={styles.parties}>

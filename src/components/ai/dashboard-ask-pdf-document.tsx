@@ -1,5 +1,6 @@
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 
+import { PdfReportHeaderImage } from '@/components/pdf/pdf-report-header'
 import type { DashboardAskPdfData } from '@/lib/dashboard-ask-pdf'
 
 Font.registerHyphenationCallback((word) => [word])
@@ -15,15 +16,11 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     paddingHorizontal: 54,
   },
-  header: {
+  title: {
     textAlign: 'center',
     fontFamily: 'Times-Bold',
     fontSize: 14,
-    marginBottom: 4,
-  },
-  subheader: {
-    textAlign: 'center',
-    fontSize: 11,
+    marginTop: 10,
     marginBottom: 20,
   },
   metaLabel: {
@@ -51,8 +48,8 @@ export function DashboardAskPdfDocument({ data }: { data: DashboardAskPdfData })
   return (
     <Document title="Ask AI Report" author="Tanza Resolve">
       <Page size="A4" style={styles.page}>
-        <Text style={styles.header}>Tanza Resolve — Ask AI Report</Text>
-        <Text style={styles.subheader}>Barangay Tanza 1</Text>
+        <PdfReportHeaderImage />
+        <Text style={styles.title}>Tanza Resolve — Ask AI Report</Text>
 
         <View>
           <Text style={styles.metaLabel}>Question</Text>
