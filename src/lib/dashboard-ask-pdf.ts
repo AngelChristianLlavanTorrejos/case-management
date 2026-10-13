@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { DashboardAskPdfDocument } from '@/components/ai/dashboard-ask-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import type { DashboardPeriod } from '@/lib/dashboard-api'
 
 export type DashboardAskPdfData = {
@@ -25,7 +25,7 @@ export async function downloadDashboardAskPdf(input: {
     }),
   }
 
-  const blob = await pdf(DashboardAskPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(DashboardAskPdfDocument({ data }))
   const slug = data.question
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

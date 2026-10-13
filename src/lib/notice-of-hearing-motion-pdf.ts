@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { NoticeOfHearingMotionPdfDocument } from '@/components/motion/notice-of-hearing-motion-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getNoticeOfHearingMotion } from '@/lib/notice-of-hearing-motion-api'
 import { ordinalDay } from '@/lib/pdf-dates'
 import { getLuponChairmanName } from '@/lib/positions-api'
@@ -79,7 +79,7 @@ export async function loadNoticeOfHearingMotionPdfData(id: number): Promise<Noti
 
 export async function downloadNoticeOfHearingMotionPdf(id: number) {
   const data = await loadNoticeOfHearingMotionPdfData(id)
-  const blob = await pdf(NoticeOfHearingMotionPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(NoticeOfHearingMotionPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `notice-motion-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { RepudiationPdfDocument } from '@/components/repudiation/repudiation-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { ordinalDay } from '@/lib/pdf-dates'
 import { getLuponChairmanName } from '@/lib/positions-api'
 import { getRepudiation } from '@/lib/repudiation-api'
@@ -72,7 +72,7 @@ export async function loadRepudiationPdfData(
 
 export async function downloadRepudiationPdf(id: number, actorUserId: number) {
   const data = await loadRepudiationPdfData(id, actorUserId)
-  const blob = await pdf(RepudiationPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(RepudiationPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `repudiation-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

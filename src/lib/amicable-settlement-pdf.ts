@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { AmicableSettlementPdfDocument } from '@/components/settlement/amicable-settlement-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getAmicableSettlement } from '@/lib/amicable-settlement-api'
 import { ordinalDay } from '@/lib/pdf-dates'
 import { getLuponChairmanName } from '@/lib/positions-api'
@@ -50,7 +50,7 @@ export async function loadAmicableSettlementPdfData(id: number): Promise<Amicabl
 
 export async function downloadAmicableSettlementPdf(id: number) {
   const data = await loadAmicableSettlementPdfData(id)
-  const blob = await pdf(AmicableSettlementPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(AmicableSettlementPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `settlement-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

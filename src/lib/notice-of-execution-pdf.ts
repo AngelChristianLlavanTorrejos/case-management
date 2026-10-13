@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { NoticeOfExecutionPdfDocument } from '@/components/execution/notice-of-execution-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getNoticeOfExecution } from '@/lib/notice-of-execution-api'
 import { ordinalDay } from '@/lib/pdf-dates'
 import { getLuponChairmanName } from '@/lib/positions-api'
@@ -63,7 +63,7 @@ export async function loadNoticeOfExecutionPdfData(id: number): Promise<Executio
 
 export async function downloadNoticeOfExecutionPdf(id: number) {
   const data = await loadNoticeOfExecutionPdfData(id)
-  const blob = await pdf(NoticeOfExecutionPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(NoticeOfExecutionPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `execution-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { CertificateToFileActionPdfDocument } from '@/components/cfa/certificate-to-file-action-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getCertificateToFileAction } from '@/lib/certificate-to-file-action-api'
 import { getLuponChairmanName } from '@/lib/positions-api'
 
@@ -28,7 +28,7 @@ export async function loadCertificateToFileActionPdfData(id: number): Promise<Cf
 
 export async function downloadCertificateToFileActionPdf(id: number) {
   const data = await loadCertificateToFileActionPdfData(id)
-  const blob = await pdf(CertificateToFileActionPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(CertificateToFileActionPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `certificate-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

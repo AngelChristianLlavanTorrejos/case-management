@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { SummonPdfDocument } from '@/components/summon/summon-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getComplaint } from '@/lib/complaints-api'
 import { getSummon } from '@/lib/hearing-summon-api'
 import { ordinalDay } from '@/lib/pdf-dates'
@@ -93,7 +93,7 @@ export async function loadSummonPdfData(id: number, actorUserId: number): Promis
 
 export async function downloadSummonPdf(id: number, actorUserId: number) {
   const data = await loadSummonPdfData(id, actorUserId)
-  const blob = await pdf(SummonPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(SummonPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `summon-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

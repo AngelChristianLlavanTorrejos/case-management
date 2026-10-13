@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { MotionForExecutionPdfDocument } from '@/components/motion/motion-for-execution-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getMotionForExecution } from '@/lib/motion-for-execution-api'
 import { ordinalDay } from '@/lib/pdf-dates'
 
@@ -44,7 +44,7 @@ export async function loadMotionForExecutionPdfData(id: number): Promise<MotionP
 
 export async function downloadMotionForExecutionPdf(id: number) {
   const data = await loadMotionForExecutionPdfData(id)
-  const blob = await pdf(MotionForExecutionPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(MotionForExecutionPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `motion-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

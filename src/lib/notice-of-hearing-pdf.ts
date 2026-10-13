@@ -1,6 +1,6 @@
-import { pdf } from '@react-pdf/renderer'
 
 import { NoticeOfHearingPdfDocument } from '@/components/hearing/notice-of-hearing-pdf-document'
+import { pdfDocumentToBlob } from '@/lib/pdf-document-blob'
 import { getNoticeOfHearing } from '@/lib/hearing-summon-api'
 import { ordinalDay } from '@/lib/pdf-dates'
 import { getLuponChairmanName } from '@/lib/positions-api'
@@ -77,7 +77,7 @@ export async function loadNoticeOfHearingPdfData(id: number, actorUserId: number
 
 export async function downloadNoticeOfHearingPdf(id: number, actorUserId: number) {
   const data = await loadNoticeOfHearingPdfData(id, actorUserId)
-  const blob = await pdf(NoticeOfHearingPdfDocument({ data })).toBlob()
+  const blob = await pdfDocumentToBlob(NoticeOfHearingPdfDocument({ data }))
   const slug = (data.barangayCaseNo || `notice-${id}`).replace(/[^\w.-]+/g, '_')
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
