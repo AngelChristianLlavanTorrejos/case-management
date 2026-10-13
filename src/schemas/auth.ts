@@ -23,6 +23,11 @@ export const loginSchema = z.object({
   password: requiredText('Password'),
 })
 
+export const resetPasswordSchema = z.object({
+  username: requiredText('Username').min(3, 'Username must be at least 3 characters'),
+  mobile_number: mobileNumberField,
+})
+
 export const registerFieldsSchema = z.object({
   first_name: requiredText('First name'),
   middle_name: z.string().trim(),
@@ -60,6 +65,7 @@ export const registerSchema = registerFieldsSchema.refine((data) => data.passwor
 })
 
 export type LoginValues = z.infer<typeof loginSchema>
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>
 export type RegisterValues = z.infer<typeof registerSchema>
 
 export const communityMemberSchema = z.object({
@@ -283,6 +289,43 @@ export const changePasswordSchema = z
   })
 
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>
+
+export const adminSetPasswordSchema = z
+  .object({
+    password: requiredText('Temporary password'),
+    confirm_password: requiredText('Confirm password'),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
+  })
+
+export type AdminSetPasswordValues = z.infer<typeof adminSetPasswordSchema>
+
+export function createAdminSetPasswordResolver(
+  policy: SecuritySettings | null,
+  username: string,
+): Resolver<AdminSetPasswordValues> {
+  return async (values, context, options) => {
+    const result = await (zodResolver(adminSetPasswordSchema) as Resolver<AdminSetPasswordValues>)(
+      values,
+      context,
+      options,
+    )
+    const message = checkPassword(values.password, username, policy)
+    if (!message) return result
+    return {
+      values: {},
+      errors: {
+        ...result.errors,
+        password: {
+          type: 'custom',
+          message,
+        },
+      },
+    }
+  }
+}
 
 export function createChangePasswordResolver(
   policy: SecuritySettings | null,

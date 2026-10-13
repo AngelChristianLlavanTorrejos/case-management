@@ -16,6 +16,7 @@ import { HomePage } from '@/pages/home-page'
 import { AddLuponMemberPage } from '@/pages/add-lupon-member-page'
 import { LuponMembersPage } from '@/pages/lupon-members-page'
 import { LoginPage } from '@/pages/login-page'
+import { ResetPasswordPage } from '@/pages/reset-password-page'
 import { MotionForExecutionPage } from '@/pages/motion-for-execution-page'
 import { MyProfilePage } from '@/pages/my-profile-page'
 import { AddNoticeOfExecutionPage } from '@/pages/add-notice-of-execution-page'
@@ -78,6 +79,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           element={
             <RequireAuth>

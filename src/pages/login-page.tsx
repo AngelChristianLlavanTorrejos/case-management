@@ -83,6 +83,12 @@ export function LoginPage() {
 
         {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
 
+        <p className="text-right text-sm">
+          <Link to="/reset-password" className="cursor-pointer font-medium text-brand hover:underline">
+            Reset password
+          </Link>
+        </p>
+
         <Button type="submit" className="h-10 w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Signing in…' : 'Login'}
         </Button>

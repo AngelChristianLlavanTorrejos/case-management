@@ -56,6 +56,39 @@ function toSession(data: unknown): AuthSession {
   }
 }
 
+export async function requestPasswordReset(username: string, mobileNumber: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('password-reset', {
+    body: {
+      username,
+      mobile_number: mobileNumber,
+    },
+  })
+
+  if (error) {
+    let message = error.message
+    try {
+      const response = (error as { context?: Response }).context
+      if (response) {
+        const parsed = (await response.json()) as { error?: string }
+        if (parsed?.error) message = parsed.error
+      }
+    } catch {
+      // keep the original message
+    }
+    throw new Error(message.replace(/^Edge Function returned a non-2xx status code$/i, 'Unable to reset password.'))
+  }
+
+  const parsed = data as { error?: string; ok?: boolean; partial?: boolean } | null
+  if (parsed?.error && !parsed.ok) throw new Error(parsed.error)
+  if (parsed?.partial) {
+    throw new Error(
+      parsed.error
+        ? `Password was reset but the SMS could not be sent: ${parsed.error}`
+        : 'Password was reset but the SMS could not be sent.',
+    )
+  }
+}
+
 export async function loginUser(username: string, password: string): Promise<AuthSession> {
   const { data, error } = await supabase.rpc('login_user', {
     p_username: username,

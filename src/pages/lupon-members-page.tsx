@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, Eye, Pencil, Trash2, UserCheck } from 'lucide-react'
+import { Ban, Eye, KeyRound, Pencil, Trash2, UserCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
+import { AdminResetPasswordDialog } from '@/components/members/admin-reset-password-dialog'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import { formatStatusLabel, placeholders } from '@/lib/form-fields'
@@ -15,6 +16,7 @@ import {
   type LuponMemberListRow,
 } from '@/lib/lupon-members-api'
 import { listAvailableLuponPositions } from '@/lib/positions-api'
+import { isSuperAdmin } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
@@ -24,6 +26,8 @@ export function LuponMembersPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const actorUserId = useAuthStore((state) => state.session?.id)
+  const roleName = useAuthStore((state) => state.session?.roleName)
+  const [resetTarget, setResetTarget] = useState<LuponMemberListRow | null>(null)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('display_name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -142,6 +146,12 @@ export function LuponMembersPage() {
     { label: 'View', icon: Eye, onSelect: (row) => navigate(`/lupon-members/${row.id}/view`) },
     { label: 'Edit', icon: Pencil, onSelect: (row) => navigate(`/lupon-members/${row.id}/edit`) },
     {
+      label: 'Reset password',
+      icon: KeyRound,
+      onSelect: (row) => setResetTarget(row),
+      hidden: () => !isSuperAdmin(roleName),
+    },
+    {
       label: 'Delete',
       icon: Trash2,
       onSelect: (row) => void handleDelete(row),
@@ -197,6 +207,18 @@ export function LuponMembersPage() {
         total={total}
         onPageChange={setPage}
         actions={actions}
+      />
+
+      <AdminResetPasswordDialog
+        open={resetTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setResetTarget(null)
+        }}
+        targetUserId={resetTarget?.id ?? null}
+        targetDisplayName={resetTarget?.display_name ?? ''}
+        targetUsername={resetTarget?.username}
+        scope="lupon"
+        actorUserId={actorUserId}
       />
     </>
   )

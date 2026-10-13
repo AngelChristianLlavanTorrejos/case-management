@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, Eye, Pencil, Trash2, UserCheck } from 'lucide-react'
+import { Ban, Eye, KeyRound, Pencil, Trash2, UserCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageContent, type PageContentAction, type SortDir } from '@/components/data/page-content'
+import { AdminResetPasswordDialog } from '@/components/members/admin-reset-password-dialog'
 import { PageHeader } from '@/components/layout/page-header'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
@@ -15,6 +16,7 @@ import {
   restrictCommunityMember,
   type CommunityMemberListRow,
 } from '@/lib/community-members-api'
+import { isSuperAdmin } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 const PAGE_SIZE = 10
@@ -24,6 +26,8 @@ export function CommunityMembersPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const actorUserId = useAuthStore((state) => state.session?.id)
+  const roleName = useAuthStore((state) => state.session?.roleName)
+  const [resetTarget, setResetTarget] = useState<CommunityMemberListRow | null>(null)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('display_name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -137,6 +141,12 @@ export function CommunityMembersPage() {
   const residentActions: PageContentAction<CommunityMemberListRow>[] = [
     { label: 'View', icon: Eye, onSelect: (row) => navigate(`/community-members/${row.id}/view`) },
     { label: 'Edit', icon: Pencil, onSelect: (row) => navigate(`/community-members/${row.id}/edit`) },
+    {
+      label: 'Reset password',
+      icon: KeyRound,
+      onSelect: (row) => setResetTarget(row),
+      hidden: () => !isSuperAdmin(roleName),
+    },
     { label: 'Delete', icon: Trash2, onSelect: (row) => void handleDelete(row), variant: 'destructive' },
     {
       label: 'Restrict',
@@ -193,6 +203,17 @@ export function CommunityMembersPage() {
           actions={residentActions}
         />
       </div>
+
+      <AdminResetPasswordDialog
+        open={resetTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setResetTarget(null)
+        }}
+        targetUserId={resetTarget?.id ?? null}
+        targetDisplayName={resetTarget?.display_name ?? ''}
+        scope="community"
+        actorUserId={actorUserId}
+      />
     </div>
   )
 }
