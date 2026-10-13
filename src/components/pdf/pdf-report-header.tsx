@@ -1,14 +1,13 @@
 import { Image, StyleSheet, View } from '@react-pdf/renderer'
 
-const PDF_HEADER_PATH = '/images/pdf-header.png'
-
 const HEADER_IMAGE_HEIGHT = 88
 
 function pdfHeaderImageSrc() {
+  const path = `${import.meta.env.BASE_URL}images/pdf-header.png`
   if (typeof window !== 'undefined' && window.location?.origin) {
-    return new URL(PDF_HEADER_PATH, window.location.origin).href
+    return new URL(path, window.location.origin).href
   }
-  return PDF_HEADER_PATH
+  return path
 }
 
 const styles = StyleSheet.create({
