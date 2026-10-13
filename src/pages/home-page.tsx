@@ -211,7 +211,7 @@ export function HomePage() {
           <section>
             <h2 className="text-sm font-medium text-[#171717]">Needs attention</h2>
             <div className="mt-3">
-              <Table>
+              <Table containerClassName="max-h-72">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Barangay case no.</TableHead>
