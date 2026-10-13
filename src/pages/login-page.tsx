@@ -7,6 +7,7 @@ import { AuthBrand, AuthShell } from '@/components/auth/auth-shell'
 import { Field } from '@/components/auth/field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { loginUser } from '@/lib/auth-api'
 import { placeholders } from '@/lib/form-fields'
 import { homePathForRole } from '@/lib/roles'
@@ -70,9 +71,8 @@ export function LoginPage() {
           required
           error={form.formState.errors.password?.message}
         >
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             placeholder={placeholders.password}
             className="h-10 bg-white"

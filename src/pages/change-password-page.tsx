@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Field } from '@/components/auth/field'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { useConfirm } from '@/hooks/use-confirm'
 import { toast } from '@/hooks/use-toast.tsx'
 import { placeholders } from '@/lib/form-fields'
@@ -74,9 +74,8 @@ export function ChangePasswordPage() {
           required
           error={form.formState.errors.current_password?.message}
         >
-          <Input
+          <PasswordInput
             id="current_password"
-            type="password"
             autoComplete="current-password"
             className="h-10 bg-white"
             placeholder={placeholders.current_password}
@@ -89,9 +88,8 @@ export function ChangePasswordPage() {
           required
           error={form.formState.errors.new_password?.message}
         >
-          <Input
+          <PasswordInput
             id="new_password"
-            type="password"
             autoComplete="new-password"
             className="h-10 bg-white"
             placeholder={placeholders.new_password}
@@ -104,9 +102,8 @@ export function ChangePasswordPage() {
           required
           error={form.formState.errors.confirm_password?.message}
         >
-          <Input
+          <PasswordInput
             id="confirm_new_password"
-            type="password"
             autoComplete="new-password"
             className="h-10 bg-white"
             placeholder={placeholders.confirm_password}

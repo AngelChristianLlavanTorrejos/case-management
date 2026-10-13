@@ -9,6 +9,7 @@ import { REGISTER_STEPS, WizardProgress } from '@/components/auth/wizard-progres
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { MobileNumberInput } from '@/components/ui/mobile-number-input'
 import {
   Select,
@@ -567,9 +568,8 @@ export function RegisterPage() {
               required
               error={form.formState.errors.password?.message}
             >
-              <Input
+              <PasswordInput
                 id="reg-password"
-                type="password"
                 autoComplete="new-password"
                 placeholder={placeholders.password}
                 className="h-10 bg-white"
@@ -583,9 +583,8 @@ export function RegisterPage() {
               required
               error={form.formState.errors.confirm_password?.message}
             >
-              <Input
+              <PasswordInput
                 id="confirm_password"
-                type="password"
                 autoComplete="new-password"
                 placeholder={placeholders.confirm_password}
                 className="h-10 bg-white"

@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { toast } from '@/hooks/use-toast.tsx'
 import {
   superAdminSetMemberPassword,
@@ -123,9 +123,8 @@ export function AdminResetPasswordDialog({
             required
             error={form.formState.errors.password?.message}
           >
-            <Input
+            <PasswordInput
               id="admin_temp_password"
-              type="password"
               autoComplete="new-password"
               placeholder={placeholders.password}
               className="h-10 bg-white"
@@ -140,9 +139,8 @@ export function AdminResetPasswordDialog({
             required
             error={form.formState.errors.confirm_password?.message}
           >
-            <Input
+            <PasswordInput
               id="admin_confirm_password"
-              type="password"
               autoComplete="new-password"
               placeholder={placeholders.confirm_password}
               className="h-10 bg-white"

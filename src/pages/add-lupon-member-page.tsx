@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { MobileNumberInput } from '@/components/ui/mobile-number-input'
 import {
   Select,
@@ -328,9 +329,8 @@ export function AddLuponMemberPage() {
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Password" htmlFor="lupon-password" required error={form.formState.errors.password?.message}>
-                <Input
+                <PasswordInput
                   id="lupon-password"
-                  type="password"
                   autoComplete="new-password"
                   className="h-10 bg-white"
                   placeholder={placeholders.password}
@@ -343,9 +343,8 @@ export function AddLuponMemberPage() {
                 required
                 error={form.formState.errors.confirm_password?.message}
               >
-                <Input
+                <PasswordInput
                   id="lupon-confirm-password"
-                  type="password"
                   autoComplete="new-password"
                   className="h-10 bg-white"
                   placeholder={placeholders.confirm_password}
